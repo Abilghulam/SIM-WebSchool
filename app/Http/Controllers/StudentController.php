@@ -5,14 +5,23 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StudentStoreRequest;
 use App\Http\Requests\StudentUpdateRequest;
 use App\Http\Requests\StudentDocumentStoreRequest;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Routing\Controller as BaseController;
+
+use App\Models\SchoolYear;
+use App\Models\Major;
+use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentDocument;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\DocumentType;
 
-class StudentController extends Controller
+class StudentController extends BaseController
 {
+    use AuthorizesRequests;
     public function index(Request $request)
     {
         $this->authorize('viewAny', Student::class);
@@ -33,15 +42,47 @@ class StudentController extends Controller
             });
         }
 
+        // Filter berdasarkan enrollment (kelas, tahun ajaran, jurusan)
+        $schoolYearId = $request->input('school_year_id');
+        $classroomId  = $request->input('classroom_id');
+        $majorId      = $request->input('major_id');
+
+        if ($schoolYearId || $classroomId || $majorId) {
+            $q->whereHas('enrollments', function ($e) use ($schoolYearId, $classroomId, $majorId) {
+                if ($schoolYearId) $e->where('school_year_id', $schoolYearId);
+                if ($classroomId)  $e->where('classroom_id', $classroomId);
+
+                // filter jurusan lewat relasi classroom->major
+                if ($majorId) {
+                    $e->whereHas('classroom', function ($c) use ($majorId) {
+                        $c->where('major_id', $majorId);
+                    });
+                }
+
+                // untuk listing, enak fokus ke enrollment aktif
+                $e->where('is_active', true);
+            });
+        }
+
         $students = $q->latest()->paginate(15)->withQueryString();
 
-        return view('students.index', compact('students'));
+        // data dropdown filter
+        $schoolYears = SchoolYear::query()->orderByDesc('is_active')->orderBy('name')->get();
+        $majors = Major::query()->orderBy('name')->get();
+        $classrooms = Classroom::query()->orderBy('grade_level')->orderBy('name')->get();
+
+        return view('students.index', compact('students', 'schoolYears', 'majors', 'classrooms'));
     }
 
     public function create()
     {
         $this->authorize('create', Student::class);
-        return view('students.create');
+
+        $schoolYears = SchoolYear::query()->orderByDesc('is_active')->orderBy('name')->get();
+        $classrooms = Classroom::query()->with('major')->orderBy('grade_level')->orderBy('name')->get();
+        $documentTypes = DocumentType::query()->where('for', 'student')->orderBy('name')->get();
+
+        return view('students.create', compact('schoolYears', 'classrooms', 'documentTypes'));
     }
 
     public function store(StudentStoreRequest $request)
@@ -108,21 +149,31 @@ class StudentController extends Controller
         $this->authorize('view', $student);
 
         $student->load([
+            'activeEnrollment.schoolYear',
+            'activeEnrollment.classroom.major',
             'enrollments.schoolYear',
             'enrollments.classroom.major',
             'documents.type',
-            'activeEnrollment.classroom.major',
         ]);
 
-        return view('students.show', compact('student'));
+        $documentTypes = DocumentType::query()
+            ->where('for', 'student')
+            ->orderBy('name')
+            ->get();
+
+        return view('students.show', compact('student', 'documentTypes'));
     }
 
     public function edit(Student $student)
     {
         $this->authorize('update', $student);
 
-        $student->load(['activeEnrollment']);
-        return view('students.edit', compact('student'));
+        $student->load(['activeEnrollment.schoolYear', 'activeEnrollment.classroom']);
+
+        $schoolYears = SchoolYear::query()->orderByDesc('is_active')->orderBy('name')->get();
+        $classrooms  = Classroom::query()->with('major')->orderBy('grade_level')->orderBy('name')->get();
+
+        return view('students.edit', compact('student', 'schoolYears', 'classrooms'));
     }
 
     public function update(StudentUpdateRequest $request, Student $student)
@@ -130,14 +181,6 @@ class StudentController extends Controller
         $this->authorize('update', $student);
 
         $data = $request->validated();
-
-        // Batasi field yang boleh diubah wali kelas
-        if (auth()->user()->isWaliKelas()) {
-            $data = collect($data)->only([
-                'phone', 'email', 'address',
-                'father_name', 'mother_name', 'guardian_name', 'parent_phone',
-            ])->toArray();
-        }
 
         DB::transaction(function () use ($data, $student) {
             // Update biodata (yang ada di $data saja)

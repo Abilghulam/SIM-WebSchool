@@ -1,3 +1,5 @@
+@php use App\Support\Role; @endphp
+
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -12,13 +14,60 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        Dashboard
                     </x-nav-link>
+
+                    {{-- Admin & Operator menu --}}
+                    @if (Role::is(auth()->user(), 'admin', 'operator'))
+                        <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                            Siswa
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('teachers.index')" :active="request()->routeIs('teachers.*')">
+                            Guru
+                        </x-nav-link>
+
+                        {{-- Nanti bisa tambah Master Data --}}
+                        {{-- <x-nav-link :href="route('classrooms.index')" :active="request()->routeIs('classrooms.*')">
+                            Kelas
+                        </x-nav-link> --}}
+                    @endif
+
+                    {{-- Wali Kelas menu --}}
+                    @if (Role::is(auth()->user(), 'wali_kelas'))
+                        <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                            Siswa Kelas Saya
+                        </x-nav-link>
+                    @endif
+
+                    {{-- Guru menu (profil diri) --}}
+                    @if (Role::is(auth()->user(), 'guru'))
+                        {{-- nanti route ini mengarah ke halaman profil guru sendiri --}}
+                        {{-- <x-nav-link :href="route('my.teacher.profile')" :active="request()->routeIs('my.teacher.*')">
+                            Profil Saya
+                        </x-nav-link> --}}
+                    @endif
+
+                    {{-- Pimpinan menu --}}
+                    @if (Role::is(auth()->user(), 'pimpinan'))
+                        {{-- nanti route laporan --}}
+                        {{-- <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                            Laporan
+                        </x-nav-link> --}}
+                    @endif
+
+                    {{-- Siswa (opsional, belum diaktifkan) --}}
+                    {{-- @if (Role::is(auth()->user(), 'student'))
+                        <x-nav-link :href="route('my.student.profile')" :active="request()->routeIs('my.student.*')">
+                            Profil Saya
+                        </x-nav-link>
+                    @endif --}}
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
+            <!-- Settings Dropdown (profil & logout) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -35,17 +84,14 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            Profile
                         </x-dropdown-link>
 
-                        <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-
                             <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                    onclick="event.preventDefault(); this.closest('form').submit();">
+                                Log Out
                             </x-dropdown-link>
                         </form>
                     </x-slot>
@@ -68,11 +114,25 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+                Dashboard
             </x-responsive-nav-link>
+
+            @if (Role::is(auth()->user(), 'admin', 'operator'))
+                <x-responsive-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                    Siswa
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('teachers.index')" :active="request()->routeIs('teachers.*')">
+                    Guru
+                </x-responsive-nav-link>
+            @endif
+
+            @if (Role::is(auth()->user(), 'wali_kelas'))
+                <x-responsive-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                    Siswa Kelas Saya
+                </x-responsive-nav-link>
+            @endif
         </div>
 
-        <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
@@ -81,17 +141,14 @@
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
+                    Profile
                 </x-responsive-nav-link>
 
-                <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-
                     <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                            onclick="event.preventDefault(); this.closest('form').submit();">
+                        Log Out
                     </x-responsive-nav-link>
                 </form>
             </div>

@@ -57,12 +57,6 @@ class StudentPolicy
         // Admin/Operator boleh update penuh
         if ($user->canManageSchoolData()) return true;
 
-        // Wali kelas boleh update TERBATAS -> kita izinkan "update" lewat policy,
-        // tapi pembatasan field-nya nanti kita enforce di Request/Service (lihat catatan di bawah).
-        if ($user->isWaliKelas()) {
-            return $this->view($user, $student); // boleh update jika dia boleh lihat siswa tsb
-        }
-
         return false;
     }
 
@@ -85,7 +79,6 @@ class StudentPolicy
     public function uploadDocument(User $user, Student $student): bool
     {
         if ($user->canManageSchoolData()) return true;
-        if ($user->isWaliKelas()) return $this->view($user, $student);
         return false;
     }
 }

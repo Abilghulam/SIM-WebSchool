@@ -9,8 +9,12 @@ use App\Models\Teacher;
 use App\Models\TeacherDocument;
 use Illuminate\Http\Request;
 
-class TeacherController extends Controller
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Routing\Controller as BaseController;
+
+class TeacherController extends BaseController
 {
+    use AuthorizesRequests;
     public function index(Request $request)
     {
         $this->authorize('viewAny', Teacher::class);
