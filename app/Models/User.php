@@ -2,47 +2,107 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'role_label',
+        'teacher_id',
+        'is_active',
+        'last_login_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
+    ];
+
+    public function teacher(): BelongsTo
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Teacher::class);
     }
+
+    public function createdStudents(): HasMany
+    {
+        return $this->hasMany(Student::class, 'created_by');
+    }
+
+    public function updatedStudents(): HasMany
+    {
+        return $this->hasMany(Student::class, 'updated_by');
+    }
+
+    public function createdTeachers(): HasMany
+    {
+        return $this->hasMany(Teacher::class, 'created_by');
+    }
+
+    public function updatedTeachers(): HasMany
+    {
+        return $this->hasMany(Teacher::class, 'updated_by');
+    }
+
+    public function uploadedStudentDocuments(): HasMany
+    {
+        return $this->hasMany(StudentDocument::class, 'uploaded_by');
+    }
+
+    public function uploadedTeacherDocuments(): HasMany
+    {
+        return $this->hasMany(TeacherDocument::class, 'uploaded_by');
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return ($this->role_label ?? '') === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role_label, ['admin'], true);
+    }
+
+    public function isOperator(): bool
+    {
+        return in_array($this->role_label, ['operator'], true);
+    }
+
+    public function isWaliKelas(): bool
+    {
+        return in_array($this->role_label, ['wali_kelas'], true);
+    }
+
+    public function isPimpinan(): bool
+    {
+        return in_array($this->role_label, ['pimpinan'], true);
+    }
+
+    public function isGuru(): bool
+    {
+        return in_array($this->role_label, ['guru'], true);
+    }
+
+    // untuk role yang boleh akses global data (bisa kamu tambah sesuai kebutuhan)
+    public function canManageSchoolData(): bool
+    {
+        return $this->isAdmin() || $this->isOperator();
+    }
+
 }
