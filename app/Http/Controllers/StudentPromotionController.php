@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Classroom;
 use App\Models\SchoolYear;
+use App\Models\StudentEnrollment;
 use App\Services\EnrollmentPromotionService;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,17 @@ class StudentPromotionController extends BaseController
 
         $fromYear = $fromYearId ? SchoolYear::query()->find($fromYearId) : null;
         $toYear   = $toYearId ? SchoolYear::query()->find($toYearId) : null;
+
+        // ✅ hard guard
+        if (!$fromYear) {
+            abort(404, 'TA asal tidak ditemukan.');
+        }
+        if (!$fromYear->is_active) {
+            abort(403, 'TA asal harus dalam status aktif.');
+        }
+        if ($fromYear->is_locked) {
+            abort(403, 'TA asal sudah dikunci (promote sudah dilakukan).');
+        }
 
         $schoolYears = SchoolYear::query()->orderByDesc('start_date')->get();
 
@@ -71,6 +83,33 @@ class StudentPromotionController extends BaseController
             $defaultMap[$c->id] = $dest?->id;
         }
 
+        // --- PREVIEW JUMLAH SISWA PER KELAS (TA ASAL) ---
+        $fromCounts = StudentEnrollment::query()
+            ->where('school_year_id', $fromYearId)
+            ->where('is_active', 1)
+            ->selectRaw('classroom_id, COUNT(*) as total')
+            ->groupBy('classroom_id')
+            ->pluck('total', 'classroom_id'); // [classroom_id => total]
+
+        // total siswa aktif di TA asal (biar gampang tampil)
+        $totalFromStudents = (int) $fromCounts->sum();
+
+        // --- PROYEKSI KE TA TUJUAN (berdasarkan defaultMap / mapping yang tampil) ---
+        $toProjectedCounts = collect(); // [to_classroom_id => total]
+        $graduateCount = 0;
+
+        foreach ($defaultMap as $fromClassId => $toClassId) {
+            $count = (int) ($fromCounts[$fromClassId] ?? 0);
+
+            if (!$toClassId) {
+                // kelas 12 / mapping null => lulus
+                $graduateCount += $count;
+                continue;
+            }
+
+            $toProjectedCounts[$toClassId] = (int) ($toProjectedCounts[$toClassId] ?? 0) + $count;
+        }
+
         return view('enrollments.promote', compact(
             'schoolYears',
             'fromYearId',
@@ -80,7 +119,12 @@ class StudentPromotionController extends BaseController
             'fromClassrooms',
             'toClassrooms',
             'defaultMap',
+            'fromCounts',
+            'totalFromStudents',
+            'toProjectedCounts',
+            'graduateCount',
         ));
+
     }
 
     public function store(Request $request, EnrollmentPromotionService $service)

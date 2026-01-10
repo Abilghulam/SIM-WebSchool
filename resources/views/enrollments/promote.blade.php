@@ -114,6 +114,84 @@
                             <span>TA Tujuan: <strong class="text-gray-900">{{ $toYear?->name }}</strong></span>
                         </div>
 
+                        {{-- PREVIEW --}}
+                        <div class="mb-4">
+                            <x-ui.card title="Preview Jumlah Siswa (Sebelum Promosi)"
+                                subtitle="Ringkasan siswa aktif di TA asal dan proyeksi distribusi ke kelas tujuan berdasarkan mapping otomatis.">
+
+                                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                                    <div>
+                                        Total siswa aktif TA asal:
+                                        <x-ui.badge variant="gray">{{ $totalFromStudents ?? 0 }}</x-ui.badge>
+                                    </div>
+
+                                    <div class="text-gray-300">•</div>
+
+                                    <div>
+                                        Diproyeksikan lulus (kelas 12):
+                                        <x-ui.badge variant="green">{{ $graduateCount ?? 0 }}</x-ui.badge>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <x-ui.table>
+                                        <x-slot:head>
+                                            <tr>
+                                                <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
+                                                <th class="px-6 py-4 text-left font-semibold">Jumlah Siswa</th>
+                                                <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
+                                                <th class="px-6 py-4 text-left font-semibold">Proyeksi di Tujuan</th>
+                                            </tr>
+                                        </x-slot:head>
+
+                                        @foreach ($fromClassrooms as $c)
+                                            @php
+                                                $countFrom = (int) ($fromCounts[$c->id] ?? 0);
+                                                $toId = $defaultMap[$c->id] ?? null;
+
+                                                $toClass = $toId ? $toClassrooms->firstWhere('id', $toId) : null;
+                                                $countToProjected = $toId
+                                                    ? (int) ($toProjectedCounts[$toId] ?? 0)
+                                                    : null;
+
+                                                $isGrade12 = (int) $c->grade_level >= 12;
+                                            @endphp
+
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
+                                                    {{ $c->name }}
+                                                </td>
+
+                                                <td class="px-6 py-4">
+                                                    <x-ui.badge variant="gray">{{ $countFrom }}</x-ui.badge>
+                                                </td>
+
+                                                <td class="px-6 py-4 text-gray-700">
+                                                    @if ($isGrade12)
+                                                        <x-ui.badge variant="green">Lulus</x-ui.badge>
+                                                    @else
+                                                        {{ $toClass?->name ?? '-' }}
+                                                    @endif
+                                                </td>
+
+                                                <td class="px-6 py-4 text-gray-700">
+                                                    @if ($isGrade12)
+                                                        <span class="text-gray-500">-</span>
+                                                    @else
+                                                        <x-ui.badge
+                                                            variant="gray">{{ $countToProjected ?? 0 }}</x-ui.badge>
+                                                        <span class="text-xs text-gray-500 ml-2">
+                                                            (akumulasi dari semua kelas asal yang menuju kelas ini)
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </x-ui.table>
+                                </div>
+                            </x-ui.card>
+                        </div>
+
                         <x-ui.table>
                             <x-slot:head>
                                 <tr>

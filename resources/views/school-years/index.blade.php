@@ -54,10 +54,20 @@
                                     <span class="text-gray-300 mx-2">|</span>
                                 @endif
 
+                                @can('manageSchoolData')
+                                    @if ($sy->is_active && !$sy->is_locked && $otherYearsExist)
+                                        <a href="{{ route('enrollments.promote.index', ['from_year_id' => $sy->id]) }}"
+                                            class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-orange-600 rounded hover:bg-orange-700">
+                                            Promote
+                                        </a>
+                                    @endif
+                                @endcan
+
+                                <span class="text-gray-300 mx-2">|</span>
                                 <a href="{{ route('school-years.edit', $sy) }}"
                                     class="text-gray-700 hover:text-gray-900 font-semibold">Edit</a>
-                                <span class="text-gray-300 mx-2">|</span>
 
+                                <span class="text-gray-300 mx-2">|</span>
                                 <form method="POST" action="{{ route('school-years.destroy', $sy) }}" class="inline"
                                     onsubmit="return confirm('Hapus tahun ajaran ini?')">
                                     @csrf

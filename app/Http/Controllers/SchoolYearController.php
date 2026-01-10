@@ -30,7 +30,11 @@ class SchoolYearController extends BaseController
             ->paginate(15)
             ->withQueryString();
 
-        return view('school-years.index', compact('schoolYears'));
+        // ✅ untuk tombol Promote: butuh minimal ada 1 TA lain sebagai tujuan
+        $otherYearsExist = SchoolYear::query()->exists()
+            && SchoolYear::query()->where('is_active', 0)->exists();
+
+        return view('school-years.index', compact('schoolYears', 'otherYearsExist'));
     }
 
     public function create()
