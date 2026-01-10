@@ -40,7 +40,7 @@
                     class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     @csrf
 
-                    <div class="md:col-span-5">
+                    <div class="md:col-span-4">
                         <x-ui.select name="classroom_id" label="Kelas" :error="$errors->first('classroom_id')" required>
                             <option value="">- Pilih -</option>
                             @foreach ($classrooms as $c)
@@ -52,7 +52,7 @@
                         </x-ui.select>
                     </div>
 
-                    <div class="md:col-span-5">
+                    <div class="md:col-span-4">
                         <x-ui.select name="teacher_id" label="Guru" :error="$errors->first('teacher_id')" required>
                             <option value="">- Pilih -</option>
                             @foreach ($teachers as $t)
@@ -63,7 +63,7 @@
                         </x-ui.select>
                     </div>
 
-                    <div class="md:col-span-2 flex items-end">
+                    <div class="md:col-span-1 flex items-end">
                         <x-ui.button type="submit" class="w-full">Simpan</x-ui.button>
                     </div>
 

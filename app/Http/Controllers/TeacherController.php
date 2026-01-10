@@ -9,6 +9,10 @@ use App\Models\Teacher;
 use App\Models\TeacherDocument;
 use Illuminate\Http\Request;
 use App\Models\DocumentType;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Routing\Controller as BaseController;
@@ -73,6 +77,7 @@ class TeacherController extends BaseController
         $this->authorize('view', $teacher);
 
         $teacher->load([
+            'user',
             'documents.type',
             'homeroomAssignments.schoolYear',
             'homeroomAssignments.classroom'
@@ -137,4 +142,56 @@ class TeacherController extends BaseController
 
         return back()->with('success', 'Dokumen guru berhasil diupload.');
     }
+
+    public function createAccount(Request $request, Teacher $teacher)
+    {
+        $this->authorize('createAccount', $teacher);
+
+        // pastikan belum ada akun
+        if (User::query()->where('teacher_id', $teacher->id)->exists()) {
+            return back()->with('warning', 'Akun untuk guru ini sudah ada.');
+        }
+
+        $data = $request->validate([
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $username = trim((string) $teacher->nip);
+
+        if ($username === '') {
+            return back()->with('warning', 'NIP guru kosong. Tidak bisa membuat akun.');
+        }
+
+        // username unik
+        if (User::query()->where('username', $username)->exists()) {
+            return back()->with('warning', "Username {$username} sudah dipakai akun lain.");
+        }
+
+        // email fallback kalau kosong (wajib karena kolom users.email NOT NULL)
+        $email = $data['email'] ?? ($username . '@school.local');
+
+        // kalau email fallback ternyata sudah dipakai (misalnya ada akun lama),
+        // bikin versi unik: nip+ID@school.local
+        if (User::query()->where('email', $email)->exists()) {
+            $email = $username . '+' . $teacher->id . '@school.local';
+        }
+
+        User::create([
+            'name' => $teacher->full_name,
+            'username' => $username,
+            'email' => $email,
+            'password' => Hash::make($username), // password awal = NIP
+            'role_label' => 'guru',
+            'teacher_id' => $teacher->id,
+            'is_active' => $data['is_active'] ?? true,
+            'must_change_password' => true,
+        ]);
+
+        return back()->with(
+            'success',
+            "Akun login guru berhasil dibuat. Login pakai NIP (username) dan password awal NIP. Wajib ganti password saat login pertama."
+        );
+    }
+
 }

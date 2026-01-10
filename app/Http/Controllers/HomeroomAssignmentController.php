@@ -7,6 +7,7 @@ use App\Models\HomeroomAssignment;
 use App\Models\SchoolYear;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -69,7 +70,16 @@ class HomeroomAssignmentController extends BaseController
         ]);
 
         DB::transaction(function () use ($data, $activeSchoolYearId) {
-            // Upsert: untuk 1 kelas pada tahun ajaran aktif, update jika sudah ada.
+
+            // 1) Ambil wali kelas lama untuk kelas ini (kalau ada)
+            $existing = HomeroomAssignment::query()
+                ->where('school_year_id', $activeSchoolYearId)
+                ->where('classroom_id', $data['classroom_id'])
+                ->first();
+
+            $oldTeacherId = $existing?->teacher_id;
+
+            // 2) Upsert assignment (seperti kode kamu sekarang)
             HomeroomAssignment::query()->updateOrCreate(
                 [
                     'school_year_id' => $activeSchoolYearId,
@@ -79,6 +89,28 @@ class HomeroomAssignmentController extends BaseController
                     'teacher_id' => $data['teacher_id'],
                 ]
             );
+
+            // 3) Promote teacher baru -> wali_kelas (hanya kalau user-nya role guru)
+            User::query()
+                ->where('teacher_id', $data['teacher_id'])
+                ->where('role_label', 'guru')
+                ->update(['role_label' => 'wali_kelas']);
+
+            // 4) Kalau teacher lama beda dengan teacher baru, cek apakah teacher lama masih jadi wali kelas (di TA aktif).
+            //    Jika tidak ada assignment lain, turunkan kembali ke guru.
+            if ($oldTeacherId && (int)$oldTeacherId !== (int)$data['teacher_id']) {
+                $stillHomeroom = HomeroomAssignment::query()
+                    ->where('school_year_id', $activeSchoolYearId)
+                    ->where('teacher_id', $oldTeacherId)
+                    ->exists();
+
+                if (!$stillHomeroom) {
+                    User::query()
+                        ->where('teacher_id', $oldTeacherId)
+                        ->where('role_label', 'wali_kelas')
+                        ->update(['role_label' => 'guru']);
+                }
+            }
         });
 
         return redirect()->route('homeroom-assignments.index')
@@ -89,7 +121,28 @@ class HomeroomAssignmentController extends BaseController
     {
         $this->authorize('delete', $homeroomAssignment);
 
-        $homeroomAssignment->delete();
+        $activeSchoolYearId = SchoolYear::activeId();
+
+        DB::transaction(function () use ($homeroomAssignment, $activeSchoolYearId) {
+            $teacherId = $homeroomAssignment->teacher_id;
+
+            $homeroomAssignment->delete();
+
+            // kalau teacher ini sudah tidak punya assignment lain di TA aktif -> turunkan jadi guru
+            if ($activeSchoolYearId) {
+                $stillHomeroom = HomeroomAssignment::query()
+                    ->where('school_year_id', $activeSchoolYearId)
+                    ->where('teacher_id', $teacherId)
+                    ->exists();
+
+                if (!$stillHomeroom) {
+                    User::query()
+                        ->where('teacher_id', $teacherId)
+                        ->where('role_label', 'wali_kelas')
+                        ->update(['role_label' => 'guru']);
+                }
+            }
+        });
 
         return redirect()->route('homeroom-assignments.index')
             ->with('success', 'Penugasan wali kelas berhasil dihapus.');

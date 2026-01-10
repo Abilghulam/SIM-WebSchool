@@ -1,22 +1,26 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PasswordChangeController;
+
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
-use App\Http\Controllers\DashboardController;
+
 use App\Http\Controllers\MajorController;
 use App\Http\Controllers\SchoolYearController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\HomeroomAssignmentController;
 use App\Http\Controllers\MyStudentController;
-use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
 
+// AUTH + ACTIVE (belum pakai must_change_password agar user bisa masuk ke halaman ganti password)
 Route::middleware(['auth', 'active'])->group(function () {
 
-    Route::get('/dashboard', DashboardController::class)
-        ->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -24,59 +28,66 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
+    // Change password wajib bisa diakses meskipun must_change_password = true
+    Route::get('/change-password', [PasswordChangeController::class, 'edit'])
+        ->name('password.change');
+    Route::put('/change-password', [PasswordChangeController::class, 'update'])
+        ->name('password.change.update');
+
     /**
-     * =========================
-     * ADMIN / OPERATOR ROUTES
-     * =========================
-     * Harus didefinisikan lebih dulu agar tidak ketangkep route parameter:
-     * /students/{student} atau /teachers/{teacher}
+     * AREA YANG BUTUH PASSWORD SUDAH DIGANTI
      */
-    Route::middleware(['role:admin,operator'])->group(function () {
+    Route::middleware(['must_change_password'])->group(function () {
 
-        // Students: create/store/edit/update/destroy
-        Route::resource('students', StudentController::class)
-            ->only(['create', 'store', 'edit', 'update', 'destroy']);
+        /**
+         * ADMIN / OPERATOR (FULL ACCESS)
+         * Definisikan lebih dulu supaya tidak ketangkep parameter resource route.
+         */
+        Route::middleware(['role:admin,operator'])->group(function () {
 
-        // Upload dokumen siswa
-        Route::post('students/{student}/documents', [StudentController::class, 'storeDocument'])
-            ->name('students.documents.store');
+            // Students (CRUD terbatas)
+            Route::resource('students', StudentController::class)
+                ->only(['create','store','edit','update','destroy']);
 
-        // Teachers: create/store/destroy
-        Route::resource('teachers', TeacherController::class)
-            ->only(['create', 'store', 'destroy']);
+            Route::post('students/{student}/documents', [StudentController::class, 'storeDocument'])
+                ->name('students.documents.store');
 
-        Route::resource('majors', MajorController::class)->except(['show']);
-        Route::resource('school-years', SchoolYearController::class)->except(['show'])
-            ->parameters(['school-years' => 'schoolYear']);
+            // Teachers (create/store/destroy + createAccount)
+            Route::resource('teachers', TeacherController::class)
+                ->only(['create','store','destroy']);
 
-        // set active school year
-        Route::patch('school-years/{schoolYear}/activate', [SchoolYearController::class, 'activate'])
-            ->name('school-years.activate');
+            Route::post('teachers/{teacher}/account', [TeacherController::class, 'createAccount'])
+                ->name('teachers.account.create');
 
-        Route::resource('classrooms', ClassroomController::class)->except(['show']);
-        Route::resource('homeroom-assignments', HomeroomAssignmentController::class)->only(['index', 'store', 'destroy']);
+            // Master data
+            Route::resource('majors', MajorController::class)->except(['show']);
+
+            Route::resource('school-years', SchoolYearController::class)->except(['show'])
+                ->parameters(['school-years' => 'schoolYear']);
+
+            Route::patch('school-years/{schoolYear}/activate', [SchoolYearController::class, 'activate'])
+                ->name('school-years.activate');
+
+            Route::resource('classrooms', ClassroomController::class)->except(['show']);
+
+            Route::resource('homeroom-assignments', HomeroomAssignmentController::class)
+                ->only(['index','store','destroy']);
+        });
+
+        /**
+         * GENERAL (READ-ONLY / SELF-EDIT via policy)
+         */
+        Route::resource('students', StudentController::class)->only(['index','show']);
+        Route::resource('teachers', TeacherController::class)->only(['index','show','edit','update']);
+
+        Route::post('teachers/{teacher}/documents', [TeacherController::class, 'storeDocument'])
+            ->name('teachers.documents.store');
+
+        // Wali kelas page (wajib lewat Gate)
+        Route::get('/my-class', [MyStudentController::class, 'index'])
+            ->middleware(['can:viewMyClass'])
+            ->name('my-class.index');
     });
-
-    /**
-     * =========================
-     * GENERAL ROUTES (AUTH+ACTIVE)
-     * =========================
-     */
-
-    // Students: semua role yang lolos policy boleh index + show (wali kelas read-only)
-    Route::resource('students', StudentController::class)->only(['index', 'show']);
-
-    // Teachers: index/show/edit/update untuk self (policy)
-    Route::resource('teachers', TeacherController::class)->only(['index', 'show', 'edit', 'update']);
-
-    // Upload dokumen guru (sesuai kode kamu: saat ini tidak dibatasi role)
-    Route::post('teachers/{teacher}/documents', [TeacherController::class, 'storeDocument'])
-        ->name('teachers.documents.store');
-
-    Route::get('/my-class', [MyStudentController::class, 'index'])
-        ->middleware(['can:viewMyClass'])
-        ->name('my-class.index');
-
 });
 
 require __DIR__ . '/auth.php';

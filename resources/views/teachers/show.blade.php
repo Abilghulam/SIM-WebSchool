@@ -68,6 +68,87 @@
                 </div>
             </x-ui.card>
 
+            <x-ui.card title="Akun Login" subtitle="Akun untuk mengakses SIM (username dan password awal = NIP).">
+                @php
+                    $account = $teacher->user;
+                @endphp
+
+                @if (!$isAdminOrOperator)
+                    <div class="text-sm text-gray-600">
+                        Hanya admin/operator yang dapat mengelola akun login.
+                    </div>
+                @else
+                    @if ($account)
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <div class="text-xs text-gray-500">Username</div>
+                                <div class="mt-1 font-semibold text-gray-900">{{ $account->username }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Role</div>
+                                <div class="mt-1 font-semibold text-gray-900">{{ $account->role_label }}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Status Akun</div>
+                                <div class="mt-1">
+                                    <x-ui.badge :variant="$account->is_active ? 'green' : 'gray'">
+                                        {{ $account->is_active ? 'Aktif' : 'Nonaktif' }}
+                                    </x-ui.badge>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Wajib Ganti Password</div>
+                                <div class="mt-1">
+                                    <x-ui.badge :variant="$account->must_change_password ? 'yellow' : 'green'">
+                                        {{ $account->must_change_password ? 'Ya' : 'Tidak' }}
+                                    </x-ui.badge>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-sm text-gray-600">
+                            Guru login menggunakan <span class="font-semibold">NIP</span>.
+                            @if ($account->must_change_password)
+                                Saat ini masih <span class="font-semibold">wajib ganti password</span> saat login
+                                pertama.
+                            @endif
+                        </div>
+                    @else
+                        <div class="text-sm text-gray-600">
+                            Guru ini belum memiliki akun login.
+                        </div>
+
+                        <form method="POST" action="{{ route('teachers.account.create', $teacher) }}"
+                            class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+                            @csrf
+
+                            <div class="md:col-span-6">
+                                <x-ui.input label="Email (opsional)" name="email" placeholder="guru@school.local" />
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <x-ui.select label="Status Akun" name="is_active">
+                                    <option value="1" selected>Aktif</option>
+                                    <option value="0">Nonaktif</option>
+                                </x-ui.select>
+                            </div>
+
+                            <div class="md:col-span-3 flex items-end">
+                                <x-ui.button type="submit" class="w-full">
+                                    Buat Akun
+                                </x-ui.button>
+                            </div>
+
+                            <div class="md:col-span-12 text-xs text-gray-500">
+                                Username & password awal akan menggunakan NIP: <span
+                                    class="font-semibold">{{ $teacher->nip }}</span>.
+                                Guru akan diminta mengganti password saat login pertama.
+                            </div>
+                        </form>
+                    @endif
+                @endif
+            </x-ui.card>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <x-ui.card title="Biodata" subtitle="Informasi pribadi guru.">

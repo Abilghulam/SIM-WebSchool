@@ -58,10 +58,10 @@
                         <a href="{{ route('teachers.index') }}">
                             <x-ui.button variant="secondary">Reset</x-ui.button>
                         </a>
-                    </div>
 
-                    <div class="md:col-span-12 text-sm text-gray-500">
-                        Total: <span class="font-semibold text-gray-900">{{ $teachers->total() }}</span>
+                        <div class="text-sm text-gray-500 ms-auto">
+                            Total: <span class="font-semibold text-gray-900">{{ $teachers->total() }}</span>
+                        </div>
                     </div>
                 </form>
             </x-ui.card>

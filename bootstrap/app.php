@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // middleware role
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+
+            //middleware change pass
+            'must_change_password' => \App\Http\Middleware\EnsurePasswordChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -47,4 +47,10 @@ class TeacherPolicy
         if ($user->canManageSchoolData()) return true;
         return (bool) $user->teacher_id && $user->teacher_id === $teacher->id;
     }
+
+    public function createAccount(User $user, Teacher $teacher): bool
+    {
+        return $user->isAdmin() || $user->isOperator();
+    }
+
 }

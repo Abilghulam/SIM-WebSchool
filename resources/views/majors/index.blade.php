@@ -26,14 +26,15 @@
                         <x-ui.input name="search" label="Cari" placeholder="Nama / kode"
                             value="{{ request('search') }}" />
                     </div>
-                    <div class="md:col-span-4 flex items-end gap-2">
-                        <x-ui.button type="submit">Terapkan</x-ui.button>
+                    <div class="md:col-span-12 flex items-center gap-2 pt-1">
+                        <x-ui.button variant="primary" type="submit">Terapkan</x-ui.button>
                         <a href="{{ route('majors.index') }}">
                             <x-ui.button variant="secondary">Reset</x-ui.button>
                         </a>
-                    </div>
-                    <div class="md:col-span-12 text-sm text-gray-500">
-                        Total: <span class="font-semibold text-gray-900">{{ $majors->total() }}</span>
+
+                        <div class="text-sm text-gray-500 ms-auto">
+                            Total: <span class="font-semibold text-gray-900">{{ $majors->total() }}</span>
+                        </div>
                     </div>
                 </form>
             </x-ui.card>
