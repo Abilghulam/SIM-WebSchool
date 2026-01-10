@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
+use App\Services\EnrollmentPromotionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -104,15 +105,31 @@ class SchoolYearController extends BaseController
         return redirect()->route('school-years.index')->with('success', 'Tahun ajaran berhasil dihapus.');
     }
 
-    public function activate(SchoolYear $schoolYear)
+    public function activate(SchoolYear $schoolYear, EnrollmentPromotionService $service)
     {
         $this->authorize('update', $schoolYear);
 
-        DB::transaction(function () use ($schoolYear) {
-            SchoolYear::where('is_active', 1)->update(['is_active' => 0]);
+        DB::transaction(function () use ($schoolYear, $service) {
+            $oldActiveId = SchoolYear::query()->where('is_active', 1)->value('id');
+
+            // 1) set aktif baru
+            SchoolYear::query()->where('is_active', 1)->update(['is_active' => 0]);
             $schoolYear->update(['is_active' => 1]);
+
+            // 2) matikan semua enrollment TA lama
+            if ($oldActiveId) {
+                \App\Models\StudentEnrollment::query()
+                    ->where('school_year_id', $oldActiveId)
+                    ->update(['is_active' => 0]);
+            }
+
+            // 3) jalankan promosi: buat enrollment TA baru (otomatis/mapping)
+            //    *ini kamu sudah rencanakan: grade+1, kelas 12 => lulus, dsb.
+            $service->promote($oldActiveId, $schoolYear->id);
         });
 
-        return redirect()->route('school-years.index')->with('success', "Tahun ajaran {$schoolYear->name} berhasil diaktifkan.");
+        return redirect()->route('school-years.index')
+            ->with('success', "Tahun ajaran {$schoolYear->name} berhasil diaktifkan & promosi dijalankan.");
     }
+
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\SchoolYearController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\HomeroomAssignmentController;
 use App\Http\Controllers\MyStudentController;
+use App\Http\Controllers\StudentPromotionController;
 
 Route::view('/', 'welcome');
 
@@ -72,6 +73,12 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::resource('homeroom-assignments', HomeroomAssignmentController::class)
                 ->only(['index','store','destroy']);
+                
+            Route::get('/enrollments/promote', [StudentPromotionController::class, 'index'])
+                ->name('enrollments.promote.index');
+
+            Route::post('/enrollments/promote', [StudentPromotionController::class, 'store'])
+                ->name('enrollments.promote.store');
         });
 
         /**

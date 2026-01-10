@@ -46,6 +46,11 @@ class AuthServiceProvider extends ServiceProvider
                 ->where('teacher_id', $teacherId)
                 ->exists();
         });
+
+        Gate::define('manageSchoolData', function ($user) {
+            return $user && $user->canManageSchoolData();
+        });
+
     }
 
 }
