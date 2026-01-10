@@ -12,13 +12,14 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        // Sudah pasti lewat auth middleware, tapi kita amankan
         if (!$user) {
-            abort(401);
+            return redirect()->route('login');
         }
 
-        // role_label harus ada dan cocok
-        if (!$user->role_label || !in_array($user->role_label, $roles, true)) {
+        $userRole = strtolower(trim((string) ($user->role_label ?? '')));
+        $allowedRoles = array_map(fn ($r) => strtolower(trim($r)), $roles);
+
+        if ($userRole === '' || !in_array($userRole, $allowedRoles, true)) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

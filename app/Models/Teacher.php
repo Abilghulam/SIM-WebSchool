@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class Teacher extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'nip',
@@ -36,7 +39,7 @@ class Teacher extends Model
     // akun login guru (1 teacher bisa punya 0 atau 1 user)
     public function user(): HasOne
     {
-        return $this->hasOne(User::class);
+        return $this->hasOne(User::class, 'teacher_id');
     }
 
     public function createdBy(): BelongsTo
@@ -59,7 +62,7 @@ class Teacher extends Model
         return $this->hasMany(HomeroomAssignment::class);
     }
 
-    public function scopeVisibleTo(Builder $query, \App\Models\User $user): Builder
+    public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         // Admin/Operator/Pimpinan boleh lihat semua data guru
         if ($user->canManageSchoolData() || $user->isPimpinan()) {

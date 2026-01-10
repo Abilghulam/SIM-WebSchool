@@ -8,6 +8,7 @@ use App\Http\Requests\TeacherDocumentStoreRequest;
 use App\Models\Teacher;
 use App\Models\TeacherDocument;
 use Illuminate\Http\Request;
+use App\Models\DocumentType;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Routing\Controller as BaseController;
@@ -77,7 +78,9 @@ class TeacherController extends BaseController
             'homeroomAssignments.classroom'
         ]);
 
-        return view('teachers.show', compact('teacher'));
+        $documentTypes = DocumentType::query()->orderBy('name')->get();
+
+        return view('teachers.show', compact('teacher', 'documentTypes'));
     }
 
     public function edit(Teacher $teacher)
