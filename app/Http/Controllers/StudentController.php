@@ -187,14 +187,36 @@ class StudentController extends BaseController
         $data = $request->validated();
 
         DB::transaction(function () use ($data, $student) {
-            // Update biodata (yang ada di $data saja)
+
+            $oldStatus = $student->status; // simpan sebelum berubah
+
+            // Update biodata
             $student->fill($data);
             $student->updated_by = auth()->id();
             $student->save();
 
-            // Enrollment hanya boleh diubah Admin/Operator (wali kelas tidak akan punya field ini karena di-whitelist)
+            // ✅ AUTO: kalau status jadi lulus/pindah/nonaktif, matikan enrollment aktif
+            $newStatus = $student->status;
+
+            if (in_array($newStatus, ['lulus', 'pindah', 'nonaktif'], true)) {
+                StudentEnrollment::where('student_id', $student->id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false]);
+            }
+
+            // Enrollment change (punya kamu)
             $hasEnrollmentChange = !empty($data['school_year_id']) && !empty($data['classroom_id']);
             if ($hasEnrollmentChange) {
+
+                // opsional: cegah mengaktifkan enrollment kalau status bukan aktif
+                if ($newStatus !== 'aktif') {
+                    // kalau mau strict, lempar error:
+                    // throw \Illuminate\Validation\ValidationException::withMessages([
+                    //     'status' => 'Status siswa harus "aktif" untuk dapat ditempatkan ke kelas.',
+                    // ]);
+                    return;
+                }
+
                 StudentEnrollment::where('student_id', $student->id)
                     ->where('is_active', true)
                     ->update(['is_active' => false]);
@@ -213,7 +235,8 @@ class StudentController extends BaseController
             }
         });
 
-        return redirect()->route('students.show', $student)->with('success', 'Data siswa berhasil diperbarui.');
+        return redirect()->route('students.show', $student)
+            ->with('success', 'Data siswa berhasil diperbarui.');
     }
 
     public function destroy(Student $student)
