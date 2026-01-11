@@ -30,10 +30,14 @@ class StudentPromotionController extends BaseController
             abort(404, 'TA asal tidak ditemukan.');
         }
         if (!$fromYear->is_active) {
-            abort(403, 'TA asal harus dalam status aktif.');
+            return redirect()
+                ->route('school-years.index')
+                ->with('warning', 'TA asal harus dalam status aktif.');
         }
         if ($fromYear->is_locked) {
-            abort(403, 'TA asal sudah dikunci (promote sudah dilakukan).');
+            return redirect()
+                ->route('school-years.index')
+                ->with('warning', 'TA asal sudah dikunci (promote sudah dilakukan). Silakan pilih tahun ajaran lain.');
         }
 
         $schoolYears = SchoolYear::query()->orderByDesc('start_date')->get();
@@ -42,7 +46,7 @@ class StudentPromotionController extends BaseController
         $fromClassrooms = Classroom::query()
             ->whereHas('enrollments', function ($q) use ($fromYearId) {
                 $q->where('school_year_id', $fromYearId)
-                  ->where('is_active', 1);
+                    ->where('is_active', 1);
             })
             ->with('major')
             ->orderBy('grade_level')
@@ -72,7 +76,7 @@ class StudentPromotionController extends BaseController
 
             $dest = $toClassrooms->firstWhere('name', $targetName);
 
-            // fallback: grade_level+1 dan major sama (kalau ada beda penamaan)
+            // fallback: grade_level+1 dan major sama
             if (!$dest) {
                 $dest = $toClassrooms->first(function ($x) use ($c) {
                     return (int) $x->grade_level === ((int) $c->grade_level + 1)
@@ -91,18 +95,16 @@ class StudentPromotionController extends BaseController
             ->groupBy('classroom_id')
             ->pluck('total', 'classroom_id'); // [classroom_id => total]
 
-        // total siswa aktif di TA asal (biar gampang tampil)
         $totalFromStudents = (int) $fromCounts->sum();
 
-        // --- PROYEKSI KE TA TUJUAN (berdasarkan defaultMap / mapping yang tampil) ---
-        $toProjectedCounts = collect(); // [to_classroom_id => total]
+        // --- PROYEKSI KE TA TUJUAN (berdasarkan defaultMap) ---
+        $toProjectedCounts = collect();
         $graduateCount = 0;
 
         foreach ($defaultMap as $fromClassId => $toClassId) {
             $count = (int) ($fromCounts[$fromClassId] ?? 0);
 
             if (!$toClassId) {
-                // kelas 12 / mapping null => lulus
                 $graduateCount += $count;
                 continue;
             }
@@ -124,7 +126,6 @@ class StudentPromotionController extends BaseController
             'toProjectedCounts',
             'graduateCount',
         ));
-
     }
 
     public function store(Request $request, EnrollmentPromotionService $service)
@@ -141,10 +142,14 @@ class StudentPromotionController extends BaseController
         $fromYearId = (int) $data['from_year_id'];
         $toYearId   = (int) $data['to_year_id'];
 
-        // ✅ validasi mapping (grade + 1, kelas 12 harus null) dilakukan di service
-        $service->validateMapping($data['map']);
+        $fromYear = SchoolYear::query()->findOrFail($fromYearId);
+        if ($fromYear->is_locked) {
+            return back()->withErrors([
+                'from_year_id' => 'TA asal sudah dikunci. Promosi tidak bisa dilakukan.',
+            ]);
+        }
 
-        // ✅ eksekusi promosi dilakukan di service
+        $service->validateMapping($data['map']);
         $service->promote($fromYearId, $toYearId, $data['map']);
 
         return redirect()
@@ -152,6 +157,6 @@ class StudentPromotionController extends BaseController
                 'from_year_id' => $fromYearId,
                 'to_year_id'   => $toYearId,
             ])
-            ->with('success', 'Promosi tahun ajaran berhasil diproses. Enrollment TA asal dinonaktifkan; TA tujuan dibuatkan untuk kelas 10/11; kelas 12 diluluskan.');
+            ->with('success', 'Promosi tahun ajaran berhasil diproses. TA asal terkunci otomatis.');
     }
 }

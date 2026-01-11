@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
-use App\Services\EnrollmentPromotionService;
+use App\Models\StudentEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -14,6 +14,7 @@ use Illuminate\Routing\Controller as BaseController;
 class SchoolYearController extends BaseController
 {
     use AuthorizesRequests;
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', SchoolYear::class);
@@ -35,6 +36,27 @@ class SchoolYearController extends BaseController
             && SchoolYear::query()->where('is_active', 0)->exists();
 
         return view('school-years.index', compact('schoolYears', 'otherYearsExist'));
+    }
+
+    public function show(SchoolYear $schoolYear)
+    {
+        $this->authorize('view', $schoolYear);
+
+        // Statistik enrollment per kelas untuk TA ini
+        // - total enrollment
+        // - total enrollment yang is_active = 1
+        $classroomStats = StudentEnrollment::query()
+            ->where('school_year_id', $schoolYear->id)
+            ->selectRaw('classroom_id,
+                COUNT(*) as total_enrollments,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_enrollments
+            ')
+            ->groupBy('classroom_id')
+            ->with(['classroom.major'])
+            ->orderBy('classroom_id')
+            ->get();
+
+        return view('school-years.show', compact('schoolYear', 'classroomStats'));
     }
 
     public function create()
@@ -69,12 +91,21 @@ class SchoolYearController extends BaseController
     public function edit(SchoolYear $schoolYear)
     {
         $this->authorize('update', $schoolYear);
+
+        if ($schoolYear->is_locked) {
+            return back()->with('warning', 'Tahun ajaran ini sudah dikunci dan tidak bisa diubah.');
+        }
+
         return view('school-years.edit', compact('schoolYear'));
     }
 
     public function update(Request $request, SchoolYear $schoolYear)
     {
         $this->authorize('update', $schoolYear);
+
+        if ($schoolYear->is_locked) {
+            return back()->with('warning', 'Tahun ajaran ini sudah dikunci dan tidak bisa diubah.');
+        }
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:20', Rule::unique('school_years', 'name')->ignore($schoolYear->id)->whereNull('deleted_at')],
@@ -99,6 +130,10 @@ class SchoolYearController extends BaseController
     {
         $this->authorize('delete', $schoolYear);
 
+        if ($schoolYear->is_locked) {
+            return back()->with('warning', 'Tahun ajaran ini sudah dikunci dan tidak bisa diubah.');
+        }
+
         // kalau yang aktif, minta user set tahun lain aktif dulu
         if ($schoolYear->is_active) {
             return back()->with('success', 'Tidak bisa menghapus tahun ajaran yang sedang aktif. Aktifkan tahun ajaran lain terlebih dahulu.');
@@ -109,31 +144,35 @@ class SchoolYearController extends BaseController
         return redirect()->route('school-years.index')->with('success', 'Tahun ajaran berhasil dihapus.');
     }
 
-    public function activate(SchoolYear $schoolYear, EnrollmentPromotionService $service)
+    public function activate(SchoolYear $schoolYear)
     {
+        // NOTE: kamu pakai route PATCH school-years/{schoolYear}/activate
+        // dan di index kamu submit form dari sana.
         $this->authorize('update', $schoolYear);
 
-        DB::transaction(function () use ($schoolYear, $service) {
-            $oldActiveId = SchoolYear::query()->where('is_active', 1)->value('id');
+        if ($schoolYear->is_locked) {
+            return back()->with('warning', 'Tahun ajaran ini sudah dikunci dan tidak bisa diaktifkan.');
+        }
 
-            // 1) set aktif baru
+        DB::transaction(function () use ($schoolYear) {
+            // 1) nonaktifkan semua
             SchoolYear::query()->where('is_active', 1)->update(['is_active' => 0]);
+
+            // 2) aktifkan yang dipilih
             $schoolYear->update(['is_active' => 1]);
 
-            // 2) matikan semua enrollment TA lama
-            if ($oldActiveId) {
-                \App\Models\StudentEnrollment::query()
-                    ->where('school_year_id', $oldActiveId)
-                    ->update(['is_active' => 0]);
-            }
-
-            // 3) jalankan promosi: buat enrollment TA baru (otomatis/mapping)
-            //    *ini kamu sudah rencanakan: grade+1, kelas 12 => lulus, dsb.
-            $service->promote($oldActiveId, $schoolYear->id);
+            // 3) OPTIONAL: matikan enrollment aktif TA lain agar "current active TA" bersih
+            // Ini sesuai konsep kamu: saat ganti TA aktif, halaman wali kelas / siswa kelas saya berubah.
+            StudentEnrollment::query()
+                ->where('school_year_id', '!=', $schoolYear->id)
+                ->where('is_active', 1)
+                ->update(['is_active' => 0]);
         });
 
-        return redirect()->route('school-years.index')
-            ->with('success', "Tahun ajaran {$schoolYear->name} berhasil diaktifkan & promosi dijalankan.");
+        // IMPORTANT: di sini kita tidak auto promote.
+        // Promote dilakukan via /enrollments/promote supaya mapping jelas dan aman.
+        return redirect()
+            ->route('school-years.index')
+            ->with('success', "Tahun ajaran {$schoolYear->name} berhasil diaktifkan. Silakan jalankan Promote untuk membuat enrollment TA ini.");
     }
-
 }

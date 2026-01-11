@@ -1,5 +1,5 @@
 @props([
-    'variant' => 'gray', // gray | green | blue | amber | red
+    'variant' => 'gray',
 ])
 
 @php
@@ -10,6 +10,7 @@
         'amber' => 'bg-amber-50 text-amber-700 border-amber-200',
         'red' => 'bg-red-50 text-red-700 border-red-200',
         'yellow' => 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        'orange' => 'bg-orange-50 text-orange-700 border-orange-200',
     ];
 @endphp
 

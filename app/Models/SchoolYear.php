@@ -15,12 +15,14 @@ class SchoolYear extends Model
         'start_date',
         'end_date',
         'is_active',
+        'is_locked',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'is_active' => 'boolean',
+        'is_locked' => 'boolean',
     ];
 
     public function enrollments(): HasMany
@@ -34,8 +36,19 @@ class SchoolYear extends Model
     }
 
     public static function activeId(): ?int
-  {
-      return static::query()->where('is_active', true)->value('id');
-  }
+    {
+        return static::query()->where('is_active', true)->value('id');
+    }
+
+    public function lock(): void
+    {
+        $this->forceFill(['is_locked' => true])->save();
+    }
+
+    public function unlock(): void
+    {
+        $this->forceFill(['is_locked' => false])->save();
+    }
+
 
 }

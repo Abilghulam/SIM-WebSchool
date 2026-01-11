@@ -69,6 +69,9 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::patch('school-years/{schoolYear}/activate', [SchoolYearController::class, 'activate'])
                 ->name('school-years.activate');
 
+            Route::get('/school-years/{schoolYear}', [SchoolYearController::class, 'show'])
+                ->name('school-years.show');
+
             Route::resource('classrooms', ClassroomController::class)->except(['show']);
 
             Route::resource('homeroom-assignments', HomeroomAssignmentController::class)

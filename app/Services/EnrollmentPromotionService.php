@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
-use Illuminate\Support\Collection;
+use App\Models\SchoolYear;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +20,12 @@ class EnrollmentPromotionService
      */
     public function validateMapping(array $map): void
     {
+        if (empty($map)) {
+            throw ValidationException::withMessages([
+                'map' => 'Mapping kelas belum tersedia. Pilih TA tujuan lalu tampilkan mapping.',
+            ]);
+        }
+
         $fromClassrooms = Classroom::query()
             ->whereIn('id', array_keys($map))
             ->get()
@@ -78,17 +84,38 @@ class EnrollmentPromotionService
      * - nonaktifkan enrollment TA asal per kelas asal
      * - buat enrollment TA tujuan (kelas 10/11)
      * - kelas 12 => status siswa jadi lulus
+     * - setelah sukses => lock TA asal
      *
      * @param array<int, int|null> $map [from_classroom_id => to_classroom_id|null]
      */
     public function promote(int $fromYearId, int $toYearId, array $map = []): void
     {
+        if (empty($map)) {
+            throw ValidationException::withMessages([
+                'map' => 'Tidak ada mapping yang dikirim. Promosi dibatalkan.',
+            ]);
+        }
+
         $fromClassrooms = Classroom::query()
             ->whereIn('id', array_keys($map))
             ->get()
             ->keyBy('id');
 
         DB::transaction(function () use ($fromYearId, $toYearId, $map, $fromClassrooms) {
+
+            // safety: kalau TA asal sudah locked, jangan lanjut
+            $fromYearLocked = SchoolYear::query()
+                ->whereKey($fromYearId)
+                ->value('is_locked');
+
+            if ($fromYearLocked) {
+                throw ValidationException::withMessages([
+                    'from_year_id' => 'TA asal sudah dikunci. Promosi tidak bisa dijalankan.',
+                ]);
+            }
+
+            $processedAny = false;
+
             foreach ($map as $fromClassroomId => $toClassroomId) {
                 $fromClassroomId = (int) $fromClassroomId;
                 $fromClassroom = $fromClassrooms->get($fromClassroomId);
@@ -103,6 +130,12 @@ class EnrollmentPromotionService
                     ->where('is_active', 1)
                     ->get();
 
+                if ($enrollments->isEmpty()) {
+                    continue;
+                }
+
+                $processedAny = true;
+
                 foreach ($enrollments as $enrollment) {
                     // nonaktifkan enrollment lama
                     $enrollment->update(['is_active' => 0]);
@@ -115,7 +148,7 @@ class EnrollmentPromotionService
                         continue;
                     }
 
-                    // siswa status bukan aktif sebaiknya tidak dipromosikan (opsional strict)
+                    // siswa status bukan aktif sebaiknya tidak dipromosikan
                     $studentStatus = Student::query()->where('id', $enrollment->student_id)->value('status');
                     if ($studentStatus !== 'aktif') {
                         continue;
@@ -135,6 +168,17 @@ class EnrollmentPromotionService
                     );
                 }
             }
+
+            if (!$processedAny) {
+                throw ValidationException::withMessages([
+                    'map' => 'Tidak ada enrollment aktif yang dapat dipromosikan dari TA asal.',
+                ]);
+            }
+
+            // ✅ lock TA asal hanya setelah promosi benar-benar berjalan
+            SchoolYear::query()
+                ->whereKey($fromYearId)
+                ->update(['is_locked' => 1]);
         });
     }
 }

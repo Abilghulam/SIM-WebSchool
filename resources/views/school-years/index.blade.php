@@ -39,8 +39,15 @@
                                 {{ $sy->end_date ? \Carbon\Carbon::parse($sy->end_date)->format('d-m-Y') : '-' }}
                             </td>
                             <td class="px-6 py-4">
-                                <x-ui.badge :variant="$badgeVariant">{{ $sy->is_active ? 'Aktif' : 'Nonaktif' }}</x-ui.badge>
+                                <x-ui.badge :variant="$badgeVariant">
+                                    {{ $sy->is_active ? 'Aktif' : 'Nonaktif' }}
+                                </x-ui.badge>
+
+                                @if ($sy->is_locked)
+                                    <x-ui.badge variant="orange" class="ml-2">Locked</x-ui.badge>
+                                @endif
                             </td>
+
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 @if (!$sy->is_active)
                                     <form method="POST" action="{{ route('school-years.activate', $sy) }}"
@@ -54,8 +61,16 @@
                                     <span class="text-gray-300 mx-2">|</span>
                                 @endif
 
-                                @can('manageSchoolData')
-                                    @if ($sy->is_active && !$sy->is_locked && $otherYearsExist)
+                                {{-- ✅ Detail --}}
+                                <a href="{{ route('school-years.show', $sy) }}"
+                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    Detail
+                                </a>
+
+                                {{-- ✅ Promote --}}
+                                @can('promoteEnrollment', \App\Models\SchoolYear::class)
+                                    @if ($sy->is_active && !$sy->is_locked && ($otherYearsExist ?? false))
+                                        <span class="text-gray-300 mx-2">|</span>
                                         <a href="{{ route('enrollments.promote.index', ['from_year_id' => $sy->id]) }}"
                                             class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-orange-600 rounded hover:bg-orange-700">
                                             Promote
@@ -64,16 +79,22 @@
                                 @endcan
 
                                 <span class="text-gray-300 mx-2">|</span>
-                                <a href="{{ route('school-years.edit', $sy) }}"
-                                    class="text-gray-700 hover:text-gray-900 font-semibold">Edit</a>
 
-                                <span class="text-gray-300 mx-2">|</span>
-                                <form method="POST" action="{{ route('school-years.destroy', $sy) }}" class="inline"
-                                    onsubmit="return confirm('Hapus tahun ajaran ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="text-red-600 hover:text-red-800 font-semibold">Hapus</button>
-                                </form>
+                                {{-- ✅ Edit/Hapus disembunyikan kalau locked (lebih aman + UX jelas) --}}
+                                @if (!$sy->is_locked)
+                                    <a href="{{ route('school-years.edit', $sy) }}"
+                                        class="text-gray-700 hover:text-gray-900 font-semibold">Edit</a>
+                                    <span class="text-gray-300 mx-2">|</span>
+
+                                    <form method="POST" action="{{ route('school-years.destroy', $sy) }}"
+                                        class="inline" onsubmit="return confirm('Hapus tahun ajaran ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="text-red-600 hover:text-red-800 font-semibold">Hapus</button>
+                                    </form>
+                                @else
+                                    <span class="text-gray-400 font-semibold">Terkunci</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
