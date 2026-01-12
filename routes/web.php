@@ -16,6 +16,7 @@ use App\Http\Controllers\HomeroomAssignmentController;
 use App\Http\Controllers\MyStudentController;
 use App\Http\Controllers\StudentPromotionController;
 use App\Http\Controllers\EnrollmentPromotionLogController;
+use App\Http\Controllers\GlobalSearchController;
 
 
 Route::view('/', 'welcome');
@@ -41,6 +42,12 @@ Route::middleware(['auth', 'active'])->group(function () {
      * AREA YANG BUTUH PASSWORD SUDAH DIGANTI
      */
     Route::middleware(['must_change_password'])->group(function () {
+
+    Route::get('/global-search', [GlobalSearchController::class, 'suggest'])
+    ->name('global-search.suggest');
+
+    Route::get('/search', [GlobalSearchController::class, 'index'])
+        ->name('global-search.index');
 
         /**
          * ADMIN / OPERATOR (FULL ACCESS)

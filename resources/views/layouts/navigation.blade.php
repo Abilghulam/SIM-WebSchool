@@ -72,6 +72,146 @@
 
             {{-- RIGHT DROPDOWN --}}
             <div class="hidden sm:flex sm:items-center sm:ms-6">
+                {{-- GLOBAL QUICK SEARCH --}}
+                <div class="hidden sm:flex sm:items-center sm:me-4" x-data="globalSearch()"
+                    @keydown.escape.window="open=false">
+                    <div class="relative w-80">
+                        <input type="text" x-model="q" @input.debounce.300ms="fetch()" @focus="open=true"
+                            @keydown.enter.prevent="goToSearchPage()" placeholder="Cari siswa/guru (Nama, NIS/NIP)..."
+                            class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
+
+                        {{-- Dropdown --}}
+                        <div x-show="open" x-transition @click.outside="open=false"
+                            class="absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                            <template x-if="loading">
+                                <div class="px-4 py-3 text-sm text-gray-500">Mencari...</div>
+                            </template>
+
+                            <template x-if="!loading && q.length < 2">
+                                <div class="px-4 py-3 text-sm text-gray-500">
+                                    Ketik minimal 2 karakter.
+                                </div>
+                            </template>
+
+                            <template x-if="!loading && q.length >= 2 && resultsEmpty()">
+                                <div class="px-4 py-3 text-sm text-gray-500">
+                                    Tidak ada hasil.
+                                </div>
+                            </template>
+
+                            {{-- Students --}}
+                            <template x-if="students.length">
+                                <div class="border-t border-gray-100">
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Siswa
+                                    </div>
+                                    <template x-for="item in students" :key="'s' + item.id">
+                                        <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <div class="text-sm font-semibold text-gray-900"
+                                                        x-text="item.title"></div>
+                                                    <div class="text-xs text-gray-500">
+                                                        <span x-text="item.code"></span>
+                                                        <template x-if="item.classroom">
+                                                            <span> • <span x-text="item.classroom"></span></span>
+                                                        </template>
+                                                        <template x-if="item.major">
+                                                            <span> • <span x-text="item.major"></span></span>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </template>
+                                </div>
+                            </template>
+
+                            {{-- Teachers --}}
+                            <template x-if="teachers.length">
+                                <div class="border-t border-gray-100">
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Guru</div>
+                                    <template x-for="item in teachers" :key="'t' + item.id">
+                                        <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
+                                            <div class="text-sm font-semibold text-gray-900" x-text="item.title"></div>
+                                            <div class="text-xs text-gray-500">
+                                                <span x-text="item.code"></span>
+                                                <template x-if="item.homeroom">
+                                                    <span> • Wali: <span x-text="item.homeroom"></span></span>
+                                                </template>
+                                            </div>
+                                        </a>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <div
+                                class="border-t border-gray-200 bg-gray-50 px-4 py-2 flex items-center justify-between">
+                                <div class="text-xs text-gray-500">
+                                    Enter untuk lihat semua
+                                </div>
+                                <a :href="searchUrl()"
+                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                                    Lihat semua →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function globalSearch() {
+                        return {
+                            q: '',
+                            open: false,
+                            loading: false,
+                            students: [],
+                            teachers: [],
+
+                            async fetch() {
+                                this.open = true;
+                                const query = (this.q || '').trim();
+
+                                if (query.length < 2) {
+                                    this.students = [];
+                                    this.teachers = [];
+                                    return;
+                                }
+
+                                this.loading = true;
+
+                                try {
+                                    const res = await fetch(`{{ route('global-search.suggest') }}?q=${encodeURIComponent(query)}`, {
+                                        headers: {
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        }
+                                    });
+                                    const data = await res.json();
+                                    this.students = data.students || [];
+                                    this.teachers = data.teachers || [];
+                                } catch (e) {
+                                    this.students = [];
+                                    this.teachers = [];
+                                } finally {
+                                    this.loading = false;
+                                }
+                            },
+
+                            resultsEmpty() {
+                                return this.students.length === 0 && this.teachers.length === 0;
+                            },
+
+                            searchUrl() {
+                                const query = (this.q || '').trim();
+                                return `{{ route('global-search.index') }}?q=${encodeURIComponent(query)}`;
+                            },
+
+                            goToSearchPage() {
+                                window.location.href = this.searchUrl();
+                            }
+                        }
+                    }
+                </script>
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button
