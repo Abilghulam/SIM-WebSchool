@@ -15,6 +15,8 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\HomeroomAssignmentController;
 use App\Http\Controllers\MyStudentController;
 use App\Http\Controllers\StudentPromotionController;
+use App\Http\Controllers\EnrollmentPromotionLogController;
+
 
 Route::view('/', 'welcome');
 
@@ -82,6 +84,13 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::post('/enrollments/promote', [StudentPromotionController::class, 'store'])
                 ->name('enrollments.promote.store');
+
+            // Log Promote (Audit Trail)
+            Route::get('/enrollments/promotions', [EnrollmentPromotionLogController::class, 'index'])
+                ->name('enrollments.promotions.index');
+
+            Route::get('/enrollments/promotions/{promotion}', [EnrollmentPromotionLogController::class, 'show'])
+                ->name('enrollments.promotions.show');
         });
 
         /**

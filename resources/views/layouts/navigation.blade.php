@@ -38,6 +38,11 @@
                             Tahun Ajaran
                         </x-nav-link>
 
+                        {{-- ✅ NEW: Log Promote --}}
+                        <x-nav-link :href="route('enrollments.promotions.index')" :active="request()->routeIs('enrollments.promotions.*')">
+                            Log Promote
+                        </x-nav-link>
+
                         <x-nav-link :href="route('classrooms.index')" :active="request()->routeIs('classrooms.*')">
                             Kelas
                         </x-nav-link>

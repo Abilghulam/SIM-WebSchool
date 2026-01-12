@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\EnrollmentPromotion;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -105,6 +106,11 @@ class User extends Authenticatable
     public function canManageSchoolData(): bool
     {
         return $this->isAdmin() || $this->isOperator();
+    }
+
+    public function enrollmentPromotions(): HasMany
+    {
+        return $this->hasMany(EnrollmentPromotion::class, 'executed_by');
     }
 
 }

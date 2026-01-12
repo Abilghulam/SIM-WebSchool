@@ -150,7 +150,8 @@ class StudentPromotionController extends BaseController
         }
 
         $service->validateMapping($data['map']);
-        $service->promote($fromYearId, $toYearId, $data['map']);
+        $service->promote($fromYearId, $toYearId, $data['map'], auth()->id());
+
 
         return redirect()
             ->route('enrollments.promote.index', [

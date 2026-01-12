@@ -104,6 +104,76 @@
                 @endif
             </x-ui.card>
 
+            <x-ui.card title="Log Promote (Terbaru)"
+                subtitle="Riwayat promote terkait tahun ajaran ini (maks 10 baris).">
+                <div class="flex items-center gap-2 mb-4">
+                    <a href="{{ route('enrollments.promotions.index', ['from_school_year_id' => $schoolYear->id]) }}">
+                        <x-ui.button variant="secondary" size="sm">Lihat Semua (TA Asal)</x-ui.button>
+                    </a>
+                    <a href="{{ route('enrollments.promotions.index', ['to_school_year_id' => $schoolYear->id]) }}">
+                        <x-ui.button variant="secondary" size="sm">Lihat Semua (TA Tujuan)</x-ui.button>
+                    </a>
+                </div>
+
+                @php
+                    $rows = collect($promotionLogsFrom ?? [])
+                        ->map(fn($x) => ['dir' => 'from', 'p' => $x])
+                        ->merge(collect($promotionLogsTo ?? [])->map(fn($x) => ['dir' => 'to', 'p' => $x]))
+                        ->sortByDesc(fn($r) => $r['p']->executed_at ?? $r['p']->created_at)
+                        ->take(10);
+                @endphp
+
+                @if ($rows->isEmpty())
+                    <div class="text-gray-500 py-4">Belum ada log promote untuk tahun ajaran ini.</div>
+                @else
+                    <x-ui.table>
+                        <x-slot:head>
+                            <tr>
+                                <th class="px-6 py-4 text-left font-semibold">Waktu</th>
+                                <th class="px-6 py-4 text-left font-semibold">Arah</th>
+                                <th class="px-6 py-4 text-left font-semibold">Dari → Ke</th>
+                                <th class="px-6 py-4 text-left font-semibold">Eksekutor</th>
+                                <th class="px-6 py-4 text-left font-semibold">Status</th>
+                                <th class="px-6 py-4 text-right font-semibold">Aksi</th>
+                            </tr>
+                        </x-slot:head>
+
+                        @foreach ($rows as $row)
+                            @php
+                                $p = $row['p'];
+                                $badge = match ($p->status) {
+                                    'success' => 'green',
+                                    'failed' => 'red',
+                                    default => 'gray',
+                                };
+                            @endphp
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
+                                    {{ $p->executed_at?->format('d-m-Y H:i') ?? $p->created_at?->format('d-m-Y H:i') }}
+                                </td>
+                                <td class="px-6 py-4 text-gray-700">
+                                    {{ $row['dir'] === 'from' ? 'TA Asal' : 'TA Tujuan' }}
+                                </td>
+                                <td class="px-6 py-4 text-gray-900 font-semibold">
+                                    {{ $p->fromYear?->name ?? '-' }} → {{ $p->toYear?->name ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-gray-700">
+                                    {{ $p->executor?->name ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <x-ui.badge :variant="$badge">{{ strtoupper($p->status) }}</x-ui.badge>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <a href="{{ route('enrollments.promotions.show', $p) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </x-ui.table>
+                @endif
+            </x-ui.card>
         </div>
     </div>
 </x-app-layout>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
 use App\Models\StudentEnrollment;
+use App\Models\EnrollmentPromotion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -56,7 +57,29 @@ class SchoolYearController extends BaseController
             ->orderBy('classroom_id')
             ->get();
 
-        return view('school-years.show', compact('schoolYear', 'classroomStats'));
+        $promotionLogsFrom = EnrollmentPromotion::query()
+            ->with(['fromYear:id,name', 'toYear:id,name', 'executor:id,name'])
+            ->where('from_school_year_id', $schoolYear->id)
+            ->orderByDesc('executed_at')
+            ->orderByDesc('id')
+            ->take(10)
+            ->get();
+
+        $promotionLogsTo = EnrollmentPromotion::query()
+            ->with(['fromYear:id,name', 'toYear:id,name', 'executor:id,name'])
+            ->where('to_school_year_id', $schoolYear->id)
+            ->orderByDesc('executed_at')
+            ->orderByDesc('id')
+            ->take(10)
+            ->get();
+
+        return view('school-years.show', compact(
+            'schoolYear',
+            'classroomStats',
+            'promotionLogsFrom',
+            'promotionLogsTo'
+        ));
+
     }
 
     public function create()
