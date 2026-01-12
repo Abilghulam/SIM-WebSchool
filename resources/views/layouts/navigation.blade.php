@@ -1,4 +1,9 @@
-@php use App\Support\Role; @endphp
+@php
+    use App\Support\Role;
+
+    $user = auth()->user();
+    $isAdminOrOperator = Role::is($user, 'admin', 'operator');
+@endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,35 +26,99 @@
                     </x-nav-link>
 
                     {{-- ADMIN / OPERATOR --}}
-                    @if (Role::is(auth()->user(), 'admin', 'operator'))
-                        <x-nav-link :href="route('students.index')" :active="request()->routeIs('students.*')">
-                            Siswa
-                        </x-nav-link>
+                    @if ($isAdminOrOperator)
+                        {{-- Dropdown: Akademik --}}
+                        <x-dropdown align="left" width="56">
+                            <x-slot name="trigger">
+                                <button type="button"
+                                    class="inline-flex items-center h-16 px-3 text-sm font-medium bg-white hover:text-gray-700
+                    {{ request()->routeIs('students.*') || request()->routeIs('teachers.*') ? 'text-gray-900' : 'text-gray-500' }}">
+                                    <div>Akademik</div>
+                                    <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
 
-                        <x-nav-link :href="route('teachers.index')" :active="request()->routeIs('teachers.*')">
-                            Guru
-                        </x-nav-link>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('students.index')" :active="request()->routeIs('students.*')">
+                                    Siswa
+                                </x-dropdown-link>
 
-                        <x-nav-link :href="route('majors.index')" :active="request()->routeIs('majors.*')">
-                            Jurusan
-                        </x-nav-link>
+                                <x-dropdown-link :href="route('teachers.index')" :active="request()->routeIs('teachers.*')">
+                                    Guru
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
 
-                        <x-nav-link :href="route('school-years.index')" :active="request()->routeIs('school-years.*')">
-                            Tahun Ajaran
-                        </x-nav-link>
+                        {{-- Dropdown: Struktur Sekolah --}}
+                        <x-dropdown align="left" width="64">
+                            <x-slot name="trigger">
+                                <button type="button"
+                                    class="inline-flex items-center h-16 px-3 text-sm font-medium bg-white hover:text-gray-700
+                    {{ request()->routeIs('school-years.*') ||
+                    request()->routeIs('majors.*') ||
+                    request()->routeIs('classrooms.*') ||
+                    request()->routeIs('homeroom-assignments.*')
+                        ? 'text-gray-900'
+                        : 'text-gray-500' }}">
+                                    <div>Struktur Sekolah</div>
+                                    <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
 
-                        {{-- ✅ NEW: Log Promote --}}
-                        <x-nav-link :href="route('enrollments.promotions.index')" :active="request()->routeIs('enrollments.promotions.*')">
-                            Log Promote
-                        </x-nav-link>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('school-years.index')" :active="request()->routeIs('school-years.*')">
+                                    Tahun Ajaran
+                                </x-dropdown-link>
 
-                        <x-nav-link :href="route('classrooms.index')" :active="request()->routeIs('classrooms.*')">
-                            Kelas
-                        </x-nav-link>
+                                <x-dropdown-link :href="route('majors.index')" :active="request()->routeIs('majors.*')">
+                                    Jurusan
+                                </x-dropdown-link>
 
-                        <x-nav-link :href="route('homeroom-assignments.index')" :active="request()->routeIs('homeroom-assignments.*')">
-                            Wali Kelas
-                        </x-nav-link>
+                                <x-dropdown-link :href="route('classrooms.index')" :active="request()->routeIs('classrooms.*')">
+                                    Kelas
+                                </x-dropdown-link>
+
+                                <x-dropdown-link :href="route('homeroom-assignments.index')" :active="request()->routeIs('homeroom-assignments.*')">
+                                    Wali Kelas
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+
+                        {{-- Dropdown: Proses Akademik --}}
+                        <x-dropdown align="left" width="64">
+                            <x-slot name="trigger">
+                                <button type="button"
+                                    class="inline-flex items-center h-16 px-3 text-sm font-medium bg-white hover:text-gray-700
+                    {{ request()->routeIs('enrollments.promote.*') || request()->routeIs('enrollments.promotions.*')
+                        ? 'text-gray-900'
+                        : 'text-gray-500' }}">
+                                    <div>Proses Akademik</div>
+                                    <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('enrollments.promote.index')" :active="request()->routeIs('enrollments.promote.*')">
+                                    Promote Siswa
+                                </x-dropdown-link>
+
+                                <x-dropdown-link :href="route('enrollments.promotions.index')" :active="request()->routeIs('enrollments.promotions.*')">
+                                    Log Promote
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
                     @endif
 
                     {{-- SISWA KELAS SAYA (KHUSUS WALI KELAS) --}}
@@ -60,9 +129,9 @@
                     @endcan
 
                     {{-- MENU GURU (GURU + WALI KELAS) --}}
-                    @if (Role::is(auth()->user(), 'guru', 'wali_kelas'))
-                        @if (auth()->user()->teacher_id)
-                            <x-nav-link :href="route('teachers.show', auth()->user()->teacher_id)" :active="request()->routeIs('teachers.show')">
+                    @if (Role::is($user, 'guru', 'wali_kelas'))
+                        @if ($user->teacher_id)
+                            <x-nav-link :href="route('teachers.show', $user->teacher_id)" :active="request()->routeIs('teachers.show')">
                                 Profil Saya
                             </x-nav-link>
                         @endif
@@ -70,7 +139,7 @@
                 </div>
             </div>
 
-            {{-- RIGHT DROPDOWN --}}
+            {{-- RIGHT --}}
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 {{-- GLOBAL QUICK SEARCH --}}
                 <div class="hidden sm:flex sm:items-center sm:me-4" x-data="globalSearch()"
@@ -102,7 +171,8 @@
                             {{-- Students --}}
                             <template x-if="students.length">
                                 <div class="border-t border-gray-100">
-                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Siswa
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Siswa
                                     </div>
                                     <template x-for="item in students" :key="'s' + item.id">
                                         <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
@@ -129,10 +199,13 @@
                             {{-- Teachers --}}
                             <template x-if="teachers.length">
                                 <div class="border-t border-gray-100">
-                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Guru</div>
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Guru
+                                    </div>
                                     <template x-for="item in teachers" :key="'t' + item.id">
                                         <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
-                                            <div class="text-sm font-semibold text-gray-900" x-text="item.title"></div>
+                                            <div class="text-sm font-semibold text-gray-900" x-text="item.title">
+                                            </div>
                                             <div class="text-xs text-gray-500">
                                                 <span x-text="item.code"></span>
                                                 <template x-if="item.homeroom">
@@ -146,9 +219,7 @@
 
                             <div
                                 class="border-t border-gray-200 bg-gray-50 px-4 py-2 flex items-center justify-between">
-                                <div class="text-xs text-gray-500">
-                                    Enter untuk lihat semua
-                                </div>
+                                <div class="text-xs text-gray-500">Enter untuk lihat semua</div>
                                 <a :href="searchUrl()"
                                     class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
                                     Lihat semua →
@@ -180,11 +251,13 @@
                                 this.loading = true;
 
                                 try {
-                                    const res = await fetch(`{{ route('global-search.suggest') }}?q=${encodeURIComponent(query)}`, {
-                                        headers: {
-                                            'X-Requested-With': 'XMLHttpRequest'
+                                    const res = await fetch(
+                                        `{{ route('global-search.suggest') }}?q=${encodeURIComponent(query)}`, {
+                                            headers: {
+                                                'X-Requested-With': 'XMLHttpRequest'
+                                            }
                                         }
-                                    });
+                                    );
                                     const data = await res.json();
                                     this.students = data.students || [];
                                     this.teachers = data.teachers || [];
@@ -212,6 +285,7 @@
                     }
                 </script>
 
+                {{-- USER DROPDOWN --}}
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button
