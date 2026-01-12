@@ -62,6 +62,16 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('teachers/{teacher}/account', [TeacherController::class, 'createAccount'])
                 ->name('teachers.account.create');
 
+            // Teachers Account Management (admin/operator)
+            Route::patch('teachers/{teacher}/account/toggle-active', [TeacherController::class, 'toggleAccountActive'])
+                ->name('teachers.account.toggle-active');
+
+            Route::patch('teachers/{teacher}/account/force-change-password', [TeacherController::class, 'forceChangePassword'])
+                ->name('teachers.account.force-change-password');
+
+            Route::put('teachers/{teacher}/account/reset-password', [TeacherController::class, 'resetAccountPassword'])
+                ->name('teachers.account.reset-password');
+
             // Master data
             Route::resource('majors', MajorController::class)->except(['show']);
 

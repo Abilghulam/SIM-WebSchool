@@ -27,7 +27,7 @@ class EnsureUserIsActive
             $request->session()->regenerateToken();
 
             return redirect()->route('login')
-                ->withErrors(['email' => 'Akun Anda dinonaktifkan. Silakan hubungi admin.']);
+                ->withErrors(['username' => 'Akun Anda dinonaktifkan. Silakan hubungi admin.']);
         }
 
         return $next($request);

@@ -13,13 +13,13 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
-
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Routing\Controller as BaseController;
 
 class TeacherController extends BaseController
 {
     use AuthorizesRequests;
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Teacher::class);
@@ -194,4 +194,79 @@ class TeacherController extends BaseController
         );
     }
 
+    /**
+     * ✅ Toggle aktif/nonaktif akun guru (admin/operator)
+     */
+    public function toggleAccountActive(Request $request, Teacher $teacher)
+    {
+        // Paling aman pakai policy. Kalau belum ada ability-nya, sementara bisa pakai createAccount.
+        $this->authorize('createAccount', $teacher);
+
+        $account = $teacher->user;
+        if (!$account) {
+            return back()->with('warning', 'Guru ini belum memiliki akun login.');
+        }
+
+        // Hindari admin/operator menonaktifkan dirinya sendiri tanpa sengaja
+        if ((int) $account->id === (int) auth()->id()) {
+            return back()->with('warning', 'Tidak bisa menonaktifkan akun yang sedang digunakan.');
+        }
+
+        $account->update([
+            'is_active' => !$account->is_active,
+        ]);
+
+        return back()->with(
+            'success',
+            $account->is_active ? 'Akun berhasil diaktifkan.' : 'Akun berhasil dinonaktifkan.'
+        );
+    }
+
+    /**
+     * ✅ Paksa must_change_password = 1 (admin/operator)
+     */
+    public function forceChangePassword(Request $request, Teacher $teacher)
+    {
+        $this->authorize('createAccount', $teacher);
+
+        $account = $teacher->user;
+        if (!$account) {
+            return back()->with('warning', 'Guru ini belum memiliki akun login.');
+        }
+
+        $account->update([
+            'must_change_password' => true,
+        ]);
+
+        return back()->with('success', 'Berhasil: guru akan diminta ganti password saat login berikutnya.');
+    }
+
+    /**
+     * ✅ Reset password manual (admin/operator)
+     * - set password baru
+     * - set must_change_password = 1
+     */
+    public function resetAccountPassword(Request $request, Teacher $teacher)
+    {
+        $this->authorize('createAccount', $teacher);
+
+        $account = $teacher->user;
+        if (!$account) {
+            return back()->with('warning', 'Guru ini belum memiliki akun login.');
+        }
+
+        $data = $request->validate([
+            'new_password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $account->update([
+            'password' => Hash::make($data['new_password']),
+            'must_change_password' => true,
+        ]);
+
+        return back()->with(
+            'success',
+            'Password berhasil direset. Guru wajib mengganti password saat login berikutnya.'
+        );
+    }
 }
