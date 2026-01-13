@@ -8,6 +8,7 @@ use App\Models\SchoolYear;
 use App\Models\StudentEnrollment;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -128,6 +129,109 @@ class DashboardController extends Controller
             ->orderBy('label')
             ->get();
 
-        return view('dashboard', compact('stats', 'studentsByMajor', 'studentsByGender', 'teachersByEmployment'));
+        $activeYearId = SchoolYear::activeId();
+
+        $alerts = [
+            // 1) Tahun ajaran aktif wajib ada
+            'missingActiveSchoolYear' => $activeYearId ? false : true,
+
+            // 2) Siswa status aktif tapi tidak punya enrollment aktif (lebih penting kalau ada TA aktif)
+            'studentsWithoutActiveEnrollment' => Student::query()
+                ->where('status', 'aktif')
+                ->whereDoesntHave('enrollments', function ($q) use ($activeYearId) {
+                    $q->where('is_active', true);
+
+                    if ($activeYearId) {
+                        $q->where('school_year_id', $activeYearId);
+                    }
+                })
+                ->count(),
+
+            // 3) Guru aktif tapi belum punya akun login
+            'teachersWithoutAccount' => Teacher::query()
+                ->where('is_active', true)
+                ->doesntHave('user')
+                ->count(),
+
+            // 4) Akun guru yang masih must_change_password
+            // (anggap kolom must_change_password ada di users)
+            'mustChangePasswordCount' => User::query()
+                ->where('role_label', 'guru')
+                ->where('must_change_password', true)
+                ->count(),
+
+            // 5) Kelas pada TA aktif yang belum punya wali kelas
+            // (kalau belum ada TA aktif => 0 biar aman)
+            'homeroomNotAssigned' => $activeYearId
+                ? Classroom::query()
+                    ->whereDoesntHave('homeroomAssignments', function ($q) use ($activeYearId) {
+                        $q->where('school_year_id', $activeYearId);
+                    })
+                    ->count()
+                : 0,
+        ];
+
+        /**
+         * KPI tambahan (TA aktif)
+         */
+        $kpi = [
+            'activeYearId' => $activeYearId,
+            'enrollmentsActive' => $activeYearId
+                ? StudentEnrollment::query()->where('school_year_id', $activeYearId)->where('is_active', true)->count()
+                : 0,
+
+            'classesWithHomeroom' => $activeYearId
+                ? HomeroomAssignment::query()->where('school_year_id', $activeYearId)->distinct('classroom_id')->count('classroom_id')
+                : 0,
+        ];
+
+        /**
+         * Top kelas terbanyak siswa (TA aktif)
+         */
+        $topClassrooms = collect();
+        if ($activeYearId) {
+            $topClassrooms = Classroom::query()
+                ->with('major')
+                ->select('classrooms.*')
+                ->selectSub(function ($q) use ($activeYearId) {
+                    $q->from('student_enrollments as se')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('se.classroom_id', 'classrooms.id')
+                        ->where('se.school_year_id', $activeYearId)
+                        ->where('se.is_active', true);
+                }, 'students_count')
+                ->orderByDesc('students_count')
+                ->orderBy('grade_level')
+                ->orderBy('name')
+                ->limit(5)
+                ->get();
+        }
+
+        /**
+         * Data terbaru (buat kesan “hidup”)
+         * NOTE: asumsi created_at ada (default Laravel). Kalau ternyata kamu disable timestamps, bilang ya.
+         */
+        $recentStudents = Student::query()
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'full_name', 'nis', 'created_at']);
+
+        $recentTeachers = Teacher::query()
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'full_name', 'nip', 'created_at']);
+
+        return view('dashboard', compact(
+            'stats',
+            'studentsByMajor',
+            'studentsByGender',
+            'teachersByEmployment',
+            'alerts',
+            'kpi',
+            'topClassrooms',
+            'recentStudents',
+            'recentTeachers'
+        ));
+
     }
 }
