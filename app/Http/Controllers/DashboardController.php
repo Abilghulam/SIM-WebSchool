@@ -11,12 +11,22 @@ use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationCenter;
 
 class DashboardController extends Controller
 {
     public function __invoke(Request $request)
     {
         $user = $request->user();
+
+        // Notifications
+        $nc = app(NotificationCenter::class);
+
+        // Admin/Operator: sync system alerts
+        $nc->syncAdminOperator($user);
+
+        // Guru/Wali: sync personal alerts
+        $nc->syncTeacher($user);
 
         // ==========================
         // DASHBOARD WALI KELAS

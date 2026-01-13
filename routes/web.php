@@ -17,7 +17,7 @@ use App\Http\Controllers\MyStudentController;
 use App\Http\Controllers\StudentPromotionController;
 use App\Http\Controllers\EnrollmentPromotionLogController;
 use App\Http\Controllers\GlobalSearchController;
-
+use App\Http\Controllers\NotificationController;
 
 Route::view('/', 'welcome');
 
@@ -25,6 +25,10 @@ Route::view('/', 'welcome');
 Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
