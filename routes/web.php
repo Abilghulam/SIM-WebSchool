@@ -18,6 +18,7 @@ use App\Http\Controllers\StudentPromotionController;
 use App\Http\Controllers\EnrollmentPromotionLogController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\StudentImportController;
 
 Route::view('/', 'welcome');
 
@@ -112,6 +113,17 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::get('/enrollments/promotions/{promotion}', [EnrollmentPromotionLogController::class, 'show'])
                 ->name('enrollments.promotions.show');
+
+            Route::middleware(['auth', 'can:manageSchoolData'])
+                ->prefix('imports')
+                ->name('imports.')
+                ->group(function () {
+                    Route::get('/students/template', [StudentImportController::class, 'template'])->name('students.template');
+
+                    Route::get('/students', [StudentImportController::class, 'create'])->name('students.create');
+                    Route::post('/students/preview', [StudentImportController::class, 'preview'])->name('students.preview');
+                    Route::post('/students/commit', [StudentImportController::class, 'commit'])->name('students.commit');
+                });
         });
 
         /**

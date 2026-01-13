@@ -65,6 +65,10 @@
                                 <x-dropdown-link :href="route('teachers.index')">
                                     Guru
                                 </x-dropdown-link>
+
+                                <x-dropdown-link :href="route('imports.students.create')">
+                                    Import Siswa
+                                </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
 
