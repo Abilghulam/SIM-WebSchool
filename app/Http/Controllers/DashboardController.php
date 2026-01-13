@@ -22,24 +22,31 @@ class DashboardController extends Controller
         // DASHBOARD WALI KELAS
         // ==========================
         if (($user->role_label ?? null) === 'wali_kelas') {
-            // pakai Gate biar konsisten dengan /my-class
+
+            $activeId = SchoolYear::activeId();
+            $activeSchoolYear = SchoolYear::query()->find($activeId);
+
             // kalau belum berhak (misal belum ada assignment), tampilkan halaman yang "ramah"
             if (!$user->can('viewMyClass')) {
                 return view('dashboards.homeroom-teacher', [
-                    'activeSchoolYear' => SchoolYear::query()->find(SchoolYear::activeId()),
+                    'activeSchoolYear' => $activeSchoolYear,
                     'assignment' => null,
                     'classroom' => null,
+
+                    // personal
+                    'teacher' => $user->teacher,
+                    'account' => $user,
+
+                    // class stats
                     'stats' => [
                         'students' => 0,
                         'major' => null,
                     ],
                     'studentsByGender' => collect(),
                     'studentsByStatus' => collect(),
+                    'recentStudents' => collect(),
                 ])->with('warning', 'Akun wali kelas belum terhubung ke wali kelas aktif (homeroom assignment).');
             }
-
-            $activeId = SchoolYear::activeId();
-            $activeSchoolYear = SchoolYear::query()->find($activeId);
 
             $assignment = HomeroomAssignment::query()
                 ->with(['classroom.major', 'schoolYear'])
@@ -52,8 +59,9 @@ class DashboardController extends Controller
             $studentsTotal = 0;
             $studentsByGender = collect();
             $studentsByStatus = collect();
+            $recentStudents = collect();
 
-            if ($classroom) {
+            if ($classroom && $activeId) {
                 // total siswa aktif di kelas ini (TA aktif)
                 $studentsTotal = StudentEnrollment::query()
                     ->where('school_year_id', $activeId)
@@ -72,7 +80,7 @@ class DashboardController extends Controller
                     ->orderBy('label')
                     ->get();
 
-                // chart status siswa (aktif/lulus/pindah/nonaktif) khusus kelas ini
+                // chart status siswa (khusus kelas ini)
                 $studentsByStatus = Student::query()
                     ->join('student_enrollments as se', 'se.student_id', '=', 'students.id')
                     ->where('se.school_year_id', $activeId)
@@ -82,25 +90,70 @@ class DashboardController extends Controller
                     ->groupBy('label')
                     ->orderBy('label')
                     ->get();
+
+                // siswa terbaru di kelas (limit 8)
+                $recentStudents = Student::query()
+                    ->join('student_enrollments as se', 'se.student_id', '=', 'students.id')
+                    ->where('se.school_year_id', $activeId)
+                    ->where('se.classroom_id', $classroom->id)
+                    ->where('se.is_active', true)
+                    ->select('students.*')
+                    ->orderByDesc('students.updated_at')
+                    ->limit(8)
+                    ->get()
+                    ->map(function ($s) use ($classroom) {
+                        return [
+                            'name' => $s->full_name,
+                            'nis' => $s->nis,
+                            'classroom' => $classroom?->name,
+                            'url' => route('students.show', $s),
+                        ];
+                    });
             }
 
             return view('dashboards.homeroom-teacher', [
                 'activeSchoolYear' => $activeSchoolYear,
                 'assignment' => $assignment,
                 'classroom' => $classroom,
+
+                // personal
+                'teacher' => $user->teacher,
+                'account' => $user,
+
                 'stats' => [
                     'students' => $studentsTotal,
                     'major' => $classroom?->major?->name,
                 ],
                 'studentsByGender' => $studentsByGender,
                 'studentsByStatus' => $studentsByStatus,
+                'recentStudents' => $recentStudents,
             ]);
         }
 
         // ==========================
-        // DASHBOARD GLOBAL (ADMIN/OPERATOR/LAINNYA)
+        // DASHBOARD GURU
         // ==========================
-        // Ini meniru data yang dipakai blade Dashboard kamu sekarang :contentReference[oaicite:4]{index=4}
+        if (($user->role_label ?? null) === 'guru') {
+            $activeSchoolYear = SchoolYear::query()->find(SchoolYear::activeId());
+            $teacher = $user->teacher;
+
+            $profileChecks = [
+                'missingPhone' => $teacher ? empty($teacher->phone) : true,
+                'missingEmail' => $teacher ? empty($teacher->email) : true,
+                'missingAddress' => $teacher ? empty($teacher->address) : true,
+            ];
+
+            return view('dashboards.teacher', [
+                'activeSchoolYear' => $activeSchoolYear,
+                'teacher' => $teacher,
+                'account' => $user,
+                'profileChecks' => $profileChecks,
+            ]);
+        }
+
+        // ==========================
+        // DASHBOARD ADMIN / OPERATOR / LAINNYA
+        // ==========================
         $stats = [
             'students' => Student::query()->where('status', 'aktif')->count(),
             'teachers' => Teacher::query()->where('is_active', true)->count(),
@@ -132,36 +185,28 @@ class DashboardController extends Controller
         $activeYearId = SchoolYear::activeId();
 
         $alerts = [
-            // 1) Tahun ajaran aktif wajib ada
             'missingActiveSchoolYear' => $activeYearId ? false : true,
 
-            // 2) Siswa status aktif tapi tidak punya enrollment aktif (lebih penting kalau ada TA aktif)
             'studentsWithoutActiveEnrollment' => Student::query()
                 ->where('status', 'aktif')
                 ->whereDoesntHave('enrollments', function ($q) use ($activeYearId) {
                     $q->where('is_active', true);
-
                     if ($activeYearId) {
                         $q->where('school_year_id', $activeYearId);
                     }
                 })
                 ->count(),
 
-            // 3) Guru aktif tapi belum punya akun login
             'teachersWithoutAccount' => Teacher::query()
                 ->where('is_active', true)
                 ->doesntHave('user')
                 ->count(),
 
-            // 4) Akun guru yang masih must_change_password
-            // (anggap kolom must_change_password ada di users)
             'mustChangePasswordCount' => User::query()
                 ->where('role_label', 'guru')
                 ->where('must_change_password', true)
                 ->count(),
 
-            // 5) Kelas pada TA aktif yang belum punya wali kelas
-            // (kalau belum ada TA aktif => 0 biar aman)
             'homeroomNotAssigned' => $activeYearId
                 ? Classroom::query()
                     ->whereDoesntHave('homeroomAssignments', function ($q) use ($activeYearId) {
@@ -171,23 +216,23 @@ class DashboardController extends Controller
                 : 0,
         ];
 
-        /**
-         * KPI tambahan (TA aktif)
-         */
         $kpi = [
             'activeYearId' => $activeYearId,
             'enrollmentsActive' => $activeYearId
-                ? StudentEnrollment::query()->where('school_year_id', $activeYearId)->where('is_active', true)->count()
+                ? StudentEnrollment::query()
+                    ->where('school_year_id', $activeYearId)
+                    ->where('is_active', true)
+                    ->count()
                 : 0,
 
             'classesWithHomeroom' => $activeYearId
-                ? HomeroomAssignment::query()->where('school_year_id', $activeYearId)->distinct('classroom_id')->count('classroom_id')
+                ? HomeroomAssignment::query()
+                    ->where('school_year_id', $activeYearId)
+                    ->distinct('classroom_id')
+                    ->count('classroom_id')
                 : 0,
         ];
 
-        /**
-         * Top kelas terbanyak siswa (TA aktif)
-         */
         $topClassrooms = collect();
         if ($activeYearId) {
             $topClassrooms = Classroom::query()
@@ -207,10 +252,6 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        /**
-         * Data terbaru (buat kesan “hidup”)
-         * NOTE: asumsi created_at ada (default Laravel). Kalau ternyata kamu disable timestamps, bilang ya.
-         */
         $recentStudents = Student::query()
             ->latest()
             ->limit(5)
@@ -232,6 +273,5 @@ class DashboardController extends Controller
             'recentStudents',
             'recentTeachers'
         ));
-
     }
 }
