@@ -71,7 +71,9 @@
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">Dashboard</h2>
                 <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                    <span>Selamat datang, <span class="font-semibold text-gray-700">{{ $user->name }}</span></span>
+                    <span>Hai <span class="font-semibold text-gray-700">{{ $user->name }}</span>, selamat datang di
+                        Sistem
+                        Informasi Manajemen SMKN 9 Muaro Jambi</span>
 
                     <span class="text-gray-300">•</span>
 

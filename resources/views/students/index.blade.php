@@ -185,7 +185,7 @@
 
                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                 <a href="{{ route('students.show', $student) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    class="text-navy-500 hover:text-navy-700 font-semibold">
                                     Detail
                                 </a>
 

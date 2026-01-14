@@ -49,12 +49,25 @@
                             </td>
 
                             <td class="px-6 py-4 text-right whitespace-nowrap">
+                                {{-- ✅ Promote --}}
+                                @can('promoteEnrollment', \App\Models\SchoolYear::class)
+                                    @if ($sy->is_active && !$sy->is_locked && ($otherYearsExist ?? false))
+                                        <x-ui.button
+                                            href="{{ route('enrollments.promote.index', ['from_year_id' => $sy->id]) }}"
+                                            class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700">
+                                            Promote
+                                        </x-ui.button>
+                                    @endif
+                                @endcan
+
+                                <span class="text-gray-300 mx-2">|</span>
+
                                 @if (!$sy->is_active)
                                     <form method="POST" action="{{ route('school-years.activate', $sy) }}"
                                         class="inline">
                                         @csrf
                                         @method('PATCH')
-                                        <button class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        <button class="text-green-600 hover:text-green-800 font-semibold">
                                             Aktifkan
                                         </button>
                                     </form>
@@ -63,20 +76,9 @@
 
                                 {{-- ✅ Detail --}}
                                 <a href="{{ route('school-years.show', $sy) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    class="text-navy-500 hover:text-navy-700 font-semibold">
                                     Detail
                                 </a>
-
-                                {{-- ✅ Promote --}}
-                                @can('promoteEnrollment', \App\Models\SchoolYear::class)
-                                    @if ($sy->is_active && !$sy->is_locked && ($otherYearsExist ?? false))
-                                        <span class="text-gray-300 mx-2">|</span>
-                                        <a href="{{ route('enrollments.promote.index', ['from_year_id' => $sy->id]) }}"
-                                            class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-orange-600 rounded hover:bg-orange-700">
-                                            Promote
-                                        </a>
-                                    @endif
-                                @endcan
 
                                 <span class="text-gray-300 mx-2">|</span>
 
