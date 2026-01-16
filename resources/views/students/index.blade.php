@@ -25,11 +25,19 @@
             </div>
 
             @if ($isAdminOrOperator)
-                <a href="{{ route('students.create') }}">
-                    <x-ui.button variant="primary">
-                        + Tambah Siswa
-                    </x-ui.button>
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('students.create') }}">
+                        <x-ui.button variant="primary">
+                            + Tambah Siswa
+                        </x-ui.button>
+                    </a>
+
+                    <a href="{{ route('enrollments.bulk-placement.index') }}">
+                        <x-ui.button variant="secondary">
+                            Penempatan Massal
+                        </x-ui.button>
+                    </a>
+                </div>
             @endif
         </div>
     </x-slot>

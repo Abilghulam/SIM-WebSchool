@@ -134,15 +134,15 @@ class StudentImportService
                     $schoolYearId = $n['school_year_id'] ?? ($options['default_school_year_id'] ?? null);
                     $classroomId  = $n['classroom_id'] ?? ($options['default_classroom_id'] ?? null);
 
-                    // boleh skip enrollment jika benar-benar kosong (import siswa saja)
-                    if ($schoolYearId && $classroomId) {
+                    // Enrollment dibuat kalau school_year ada (classroom boleh null)
+                    if ($schoolYearId) {
                         StudentEnrollment::query()->updateOrCreate(
                             [
                                 'student_id' => $student->id,
                                 'school_year_id' => (int) $schoolYearId,
                             ],
                             [
-                                'classroom_id' => (int) $classroomId,
+                                'classroom_id' => $classroomId ? (int) $classroomId : null,
                                 'is_active' => array_key_exists('enrollment_is_active', $n) && $n['enrollment_is_active'] !== null
                                     ? (bool) $n['enrollment_is_active']
                                     : (bool) ($options['default_enrollment_is_active'] ?? true),
@@ -153,6 +153,7 @@ class StudentImportService
                         $enrollmentsUpserted++;
                     }
                 }
+
             }
         });
 
@@ -316,14 +317,14 @@ class StudentImportService
             $err[] = 'Status harus salah satu: aktif/lulus/pindah/nonaktif.';
         }
 
-        // mode enrollment: boleh kosong total (import siswa saja),
-        // tapi kalau salah satu terisi maka dua-duanya harus ada (atau set default)
+        // mode enrollment:
+        // - school_year WAJIB (dari kolom atau default)
+        // - classroom BOLEH kosong (untuk kasus awal masuk)
         if (($options['mode'] ?? 'students_only') === 'students_with_enrollment') {
             $sy = $n['school_year_id'] ?? ($options['default_school_year_id'] ?? null);
-            $cl = $n['classroom_id'] ?? ($options['default_classroom_id'] ?? null);
 
-            if (($sy && !$cl) || (!$sy && $cl)) {
-                $err[] = 'Enrollment butuh school_year dan classroom (keduanya). Isi kolom atau set default.';
+            if (!$sy) {
+                $err[] = 'Enrollment butuh school_year (kolom school_year_id atau default_school_year_id).';
             }
         }
 

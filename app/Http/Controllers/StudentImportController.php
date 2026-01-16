@@ -26,6 +26,10 @@ class StudentImportController extends Controller
                 ->orderBy('grade_level')
                 ->orderBy('name')
                 ->get(),
+
+            // ✅ aman: null kalau belum pernah preview
+            'result' => session('import.students.last_result'),
+            'last_options' => session('import.students.last_options'),
         ]);
     }
 
@@ -34,13 +38,11 @@ class StudentImportController extends Controller
         $file = $request->file('file');
         $token = (string) Str::uuid();
 
-        // Simpan ke disk default (sesuai FILESYSTEM_DISK), folder imports/tmp
         $path = $file->storeAs(
             'imports/tmp',
             $token . '.' . $file->getClientOriginalExtension()
         );
 
-        // Path absolut yang benar sesuai disk yang dipakai storeAs()
         $absPath = Storage::path($path);
 
         if (!is_file($absPath)) {
@@ -51,14 +53,20 @@ class StudentImportController extends Controller
 
         $options = $request->validatedOptions();
 
-        // Preview via service (akan lempar ValidationException kalau file kosong/invalid)
         $result = $service->preview($absPath, $options);
 
-        // simpan metadata untuk commit (biar ga simpan seluruh row di session)
         session()->put("import.students.$token", [
             'path' => $path,
             'options' => $options,
         ]);
+
+        // ✅ simpan ringkasan untuk ditampilkan di halaman upload
+        session()->put('import.students.last_result', [
+            'stats' => $result['stats'],
+            'has_more_errors' => $result['has_more_errors'] ?? false,
+            'errors_count_shown' => is_array($result['errors'] ?? null) ? count($result['errors']) : 0,
+        ]);
+        session()->put('import.students.last_options', $options);
 
         return view('imports.students-preview', [
             'token' => $token,
@@ -66,6 +74,7 @@ class StudentImportController extends Controller
             'result' => $result,
         ]);
     }
+
 
     public function commit(StudentImportCommitRequest $request, StudentImportService $service)
     {

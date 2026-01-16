@@ -100,102 +100,100 @@ class EnrollmentPromotionService
             ]);
         }
 
-        // load classrooms sekali
         $fromClassrooms = Classroom::query()
             ->whereIn('id', array_keys($map))
             ->get()
             ->keyBy('id');
 
-        // tempat nyimpen hasil untuk log
-        $itemsPayload = [];
-        $totals = [
-            'total_students' => 0,
-            'moved_students' => 0,
-            'graduated_students' => 0,
-            'skipped_students' => 0,
-        ];
+        DB::transaction(function () use ($fromYearId, $toYearId, $map, $executedBy, $fromClassrooms) {
+            // ✅ row lock TA asal
+            $fromYear = SchoolYear::query()->whereKey($fromYearId)->lockForUpdate()->first();
+            if (!$fromYear) {
+                throw ValidationException::withMessages(['from_year_id' => 'TA asal tidak ditemukan.']);
+            }
+            if ($fromYear->is_locked) {
+                throw ValidationException::withMessages(['from_year_id' => 'TA asal sudah dikunci.']);
+            }
 
-        try {
-            DB::transaction(function () use ($fromYearId, $toYearId, $map, $fromClassrooms, &$itemsPayload, &$totals) {
+            $promotion = EnrollmentPromotion::query()->create([
+                'from_school_year_id' => $fromYearId,
+                'to_school_year_id' => $toYearId,
+                'executed_by' => $executedBy,
+                'executed_at' => now(),
+                'mapping_json' => $map,
+                'total_students' => 0,
+                'moved_students' => 0,
+                'graduated_students' => 0,
+                'skipped_students' => 0,
+                'status' => 'running',
+                'error_message' => null,
+            ]);
 
-                // safety: kalau TA asal sudah locked, jangan lanjut
-                $fromYearLocked = SchoolYear::query()
-                    ->whereKey($fromYearId)
-                    ->value('is_locked');
+            $totals = [
+                'total_students' => 0,
+                'moved_students' => 0,
+                'graduated_students' => 0,
+                'skipped_students' => 0,
+            ];
 
-                if ($fromYearLocked) {
-                    throw ValidationException::withMessages([
-                        'from_year_id' => 'TA asal sudah dikunci. Promosi tidak bisa dijalankan.',
-                    ]);
+            $processedAny = false;
+
+            foreach ($map as $fromClassroomId => $toClassroomId) {
+                $fromClassroomId = (int) $fromClassroomId;
+                $toClassroomId = $toClassroomId ? (int) $toClassroomId : null;
+
+                $fromClassroom = $fromClassrooms->get($fromClassroomId);
+                if (!$fromClassroom) {
+                    continue;
                 }
 
-                $processedAny = false;
+                $enrollments = StudentEnrollment::query()
+                    ->where('school_year_id', $fromYearId)
+                    ->where('classroom_id', $fromClassroomId)
+                    ->where('is_active', 1)
+                    ->get();
 
-                foreach ($map as $fromClassroomId => $toClassroomId) {
-                    $fromClassroomId = (int) $fromClassroomId;
-                    $fromClassroom = $fromClassrooms->get($fromClassroomId);
+                $activeCount = $enrollments->count();
 
-                    if (!$fromClassroom) {
-                        continue;
-                    }
+                $moved = 0;
+                $graduated = 0;
+                $skipped = 0;
 
-                    $enrollments = StudentEnrollment::query()
-                        ->where('school_year_id', $fromYearId)
-                        ->where('classroom_id', $fromClassroomId)
-                        ->where('is_active', 1)
-                        ->get();
-
-                    $activeCount = $enrollments->count();
-                    if ($activeCount === 0) {
-                        // tetap catat item-nya biar audit jelas (opsional)
-                        $itemsPayload[] = [
-                            'from_classroom_id' => $fromClassroomId,
-                            'to_classroom_id' => $toClassroomId ? (int)$toClassroomId : null,
-                            'from_grade_level' => (int) $fromClassroom->grade_level,
-                            'to_grade_level' => $toClassroomId ? ((int)$fromClassroom->grade_level + 1) : null,
-                            'active_enrollments' => 0,
-                            'moved_students' => 0,
-                            'graduated_students' => 0,
-                            'skipped_students' => 0,
-                        ];
-                        continue;
-                    }
-
+                if ($activeCount > 0) {
                     $processedAny = true;
 
-                    $moved = 0;
-                    $graduated = 0;
-                    $skipped = 0;
-
                     foreach ($enrollments as $enrollment) {
-                        // nonaktifkan enrollment lama
+                        $studentStatus = Student::query()
+                            ->whereKey($enrollment->student_id)
+                            ->value('status');
+
+                        // ✅ tutup enrollment TA asal (sesuai pilihanmu untuk pindah/nonaktif)
                         $enrollment->update(['is_active' => 0]);
 
-                        // kelas 12 => lulus, stop
+                        // kelas 12 => lulus
                         if ((int) $fromClassroom->grade_level >= 12) {
                             Student::query()
-                                ->where('id', $enrollment->student_id)
+                                ->whereKey($enrollment->student_id)
                                 ->update(['status' => 'lulus']);
 
                             $graduated++;
                             continue;
                         }
 
-                        // siswa status bukan aktif sebaiknya tidak dipromosikan
-                        $studentStatus = Student::query()->where('id', $enrollment->student_id)->value('status');
+                        // selain aktif => tidak dipindah, hanya ditutup
                         if ($studentStatus !== 'aktif') {
                             $skipped++;
                             continue;
                         }
 
-                        // buat enrollment baru di TA tujuan
+                        // ✅ buat/update enrollment TA tujuan (idempotent)
                         StudentEnrollment::query()->updateOrCreate(
                             [
                                 'student_id' => $enrollment->student_id,
                                 'school_year_id' => $toYearId,
                             ],
                             [
-                                'classroom_id' => (int) $toClassroomId,
+                                'classroom_id' => $toClassroomId, // (wajib ada menurut validateMapping)
                                 'is_active' => 1,
                                 'note' => null,
                             ]
@@ -203,81 +201,50 @@ class EnrollmentPromotionService
 
                         $moved++;
                     }
-
-                    // akumulasi totals
-                    $totals['total_students'] += $activeCount;
-                    $totals['moved_students'] += $moved;
-                    $totals['graduated_students'] += $graduated;
-                    $totals['skipped_students'] += $skipped;
-
-                    // item log
-                    $itemsPayload[] = [
-                        'from_classroom_id' => $fromClassroomId,
-                        'to_classroom_id' => $toClassroomId ? (int)$toClassroomId : null,
-                        'from_grade_level' => (int) $fromClassroom->grade_level,
-                        'to_grade_level' => $toClassroomId ? ((int)$fromClassroom->grade_level + 1) : null,
-                        'active_enrollments' => $activeCount,
-                        'moved_students' => $moved,
-                        'graduated_students' => $graduated,
-                        'skipped_students' => $skipped,
-                    ];
                 }
 
-                if (!$processedAny) {
-                    throw ValidationException::withMessages([
-                        'map' => 'Tidak ada enrollment aktif yang dapat dipromosikan dari TA asal.',
-                    ]);
-                }
+                $totals['total_students'] += $activeCount;
+                $totals['moved_students'] += $moved;
+                $totals['graduated_students'] += $graduated;
+                $totals['skipped_students'] += $skipped;
 
-                // ✅ lock TA asal hanya setelah promosi benar-benar berjalan
-                SchoolYear::query()
-                    ->whereKey($fromYearId)
-                    ->update(['is_locked' => 1]);
-            });
-
-            // ✅ setelah transaksi sukses, tulis audit log (header + items)
-            DB::transaction(function () use ($fromYearId, $toYearId, $map, $executedBy, $itemsPayload, $totals) {
-                $promotion = EnrollmentPromotion::query()->create([
-                    'from_school_year_id' => $fromYearId,
-                    'to_school_year_id' => $toYearId,
-                    'executed_by' => $executedBy,
-                    'executed_at' => now(),
-                    'mapping_json' => $map,
-                    'total_students' => (int) $totals['total_students'],
-                    'moved_students' => (int) $totals['moved_students'],
-                    'graduated_students' => (int) $totals['graduated_students'],
-                    'skipped_students' => (int) $totals['skipped_students'],
-                    'status' => 'success',
-                    'error_message' => null,
+                EnrollmentPromotionItem::query()->create([
+                    'enrollment_promotion_id' => $promotion->id,
+                    'from_classroom_id' => $fromClassroomId,
+                    'to_classroom_id' => $toClassroomId,
+                    'from_grade_level' => (int) $fromClassroom->grade_level,
+                    'to_grade_level' => $toClassroomId ? ((int) $fromClassroom->grade_level + 1) : null,
+                    'active_enrollments' => $activeCount,
+                    'moved_students' => $moved,
+                    'graduated_students' => $graduated,
+                    'skipped_students' => $skipped,
                 ]);
-
-                foreach ($itemsPayload as $row) {
-                    $row['enrollment_promotion_id'] = $promotion->id;
-                    EnrollmentPromotionItem::query()->create($row);
-                }
-            });
-
-        } catch (Throwable $e) {
-            // ✅ log failure (di luar transaksi utama)
-            try {
-                EnrollmentPromotion::query()->create([
-                    'from_school_year_id' => $fromYearId,
-                    'to_school_year_id' => $toYearId,
-                    'executed_by' => $executedBy,
-                    'executed_at' => now(),
-                    'mapping_json' => $map,
-                    'total_students' => (int) ($totals['total_students'] ?? 0),
-                    'moved_students' => (int) ($totals['moved_students'] ?? 0),
-                    'graduated_students' => (int) ($totals['graduated_students'] ?? 0),
-                    'skipped_students' => (int) ($totals['skipped_students'] ?? 0),
-                    'status' => 'failed',
-                    'error_message' => mb_substr($e->getMessage(), 0, 2000),
-                ]);
-            } catch (Throwable $ignored) {
-                // kalau logging gagal, jangan nutupin error utamanya
             }
 
-            throw $e;
-        }
+            if (!$processedAny) {
+                $promotion->update([
+                    'status' => 'failed',
+                    'error_message' => 'Tidak ada enrollment aktif yang dapat dipromosikan dari TA asal.',
+                ]);
+
+                throw ValidationException::withMessages([
+                    'map' => 'Tidak ada enrollment aktif yang dapat dipromosikan dari TA asal.',
+                ]);
+            }
+
+            // ✅ lock TA asal setelah sukses
+            $fromYear->update(['is_locked' => 1]);
+
+            // ✅ finalize log
+            $promotion->update([
+                'total_students' => $totals['total_students'],
+                'moved_students' => $totals['moved_students'],
+                'graduated_students' => $totals['graduated_students'],
+                'skipped_students' => $totals['skipped_students'],
+                'status' => 'success',
+                'error_message' => null,
+            ]);
+        });
     }
+
 }

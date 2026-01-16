@@ -37,14 +37,14 @@ class StudentStoreRequest extends FormRequest
 
             // enrollment (riwayat kelas untuk tahun ajaran)
             'school_year_id' => ['required', 'integer', 'exists:school_years,id'],
-            'classroom_id' => ['required', 'integer', 'exists:classrooms,id'],
+            'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
             'enrollment_note' => ['nullable', 'string', 'max:255'],
 
             // dokumen awal (opsional kalau mau upload saat create)
             'documents' => ['nullable', 'array'],
             'documents.*.document_type_id' => ['nullable', 'integer', 'exists:document_types,id'],
             'documents.*.title' => ['nullable', 'string', 'max:120'],
-            'documents.*.file' => ['required_with:documents', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'], // 5MB
+            'documents.*.file' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'], // 5MB
         ];
     }
 }

@@ -124,7 +124,7 @@
                         </x-ui.select>
 
                         <x-ui.select label="Kelas" name="classroom_id" :error="$errors->first('classroom_id')">
-                            <option value="">- Pilih -</option>
+                            <option value="">- Belum ditentukan -</option>
                             @foreach ($classrooms as $c)
                                 @php
                                     $selectedClassId = old('classroom_id', $enr?->classroom_id);

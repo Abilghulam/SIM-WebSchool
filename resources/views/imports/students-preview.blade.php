@@ -3,7 +3,9 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">Preview Import Siswa</h2>
-                <p class="text-sm text-gray-500 mt-1">Cek sample + error. Kalau oke, lanjut commit.</p>
+                <p class="text-sm text-gray-500 mt-1">
+                    Berikut ringkasan data, contoh baris yang akan diproses, dan daftar error (jika ada).
+                </p>
             </div>
 
             <a href="{{ route('imports.students.create') }}">
@@ -17,30 +19,42 @@
             <x-ui.flash />
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <x-ui.card title="Total Baris">
+                <x-ui.card title="Total Baris di File">
                     <div class="text-3xl font-bold">{{ $result['stats']['total_rows'] }}</div>
-                </x-ui.card>
-                <x-ui.card title="Valid">
-                    <div class="text-3xl font-bold">{{ $result['stats']['valid_rows'] }}</div>
-                </x-ui.card>
-                <x-ui.card title="Invalid">
-                    <div class="text-3xl font-bold">{{ $result['stats']['invalid_rows'] }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Jumlah baris data yang terbaca (tanpa header).</div>
                 </x-ui.card>
 
-                <x-ui.card title="Konfigurasi">
+                <x-ui.card title="Siap Diproses">
+                    <div class="text-3xl font-bold">{{ $result['stats']['valid_rows'] }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Baris yang lolos pengecekan dan bisa disimpan.</div>
+                </x-ui.card>
+
+                <x-ui.card title="Perlu Diperbaiki">
+                    <div class="text-3xl font-bold">{{ $result['stats']['invalid_rows'] }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Baris yang bermasalah dan akan dilewati saat commit.</div>
+                </x-ui.card>
+
+                <x-ui.card title="Pengaturan Import">
                     <div class="text-sm font-semibold text-gray-900">
-                        {{ $options['mode'] }} • {{ $options['strategy'] }}
+                        {{ $options['mode'] === 'students_only' ? 'Hanya Data Siswa' : 'Data Siswa + Penempatan' }}
+                        •
+                        {{ $options['strategy'] === 'create_only' ? 'Lewati jika NIS sudah ada' : 'Perbarui jika NIS sudah ada' }}
                     </div>
                     <div class="text-xs text-gray-500 mt-1 space-y-1">
-                        <div>Default TA: <span
-                                class="font-semibold">{{ $options['default_school_year_id'] ?? '-' }}</span></div>
-                        <div>Default Kelas: <span
-                                class="font-semibold">{{ $options['default_classroom_id'] ?? '-' }}</span></div>
+                        <div>
+                            Default Tahun Ajaran:
+                            <span class="font-semibold">{{ $options['default_school_year_id'] ?? '-' }}</span>
+                        </div>
+                        <div>
+                            Default Kelas:
+                            <span class="font-semibold">{{ $options['default_classroom_id'] ?? '-' }}</span>
+                        </div>
                     </div>
                 </x-ui.card>
             </div>
 
-            <x-ui.card title="Sample Data (maks 20 baris)">
+            <x-ui.card title="Contoh Data (maks. 20 baris)"
+                subtitle="Contoh di bawah membantu memastikan format file sudah benar.">
                 <div class="overflow-auto">
                     <table class="min-w-full text-sm">
                         <thead class="text-left text-gray-500">
@@ -49,8 +63,8 @@
                                 <th class="py-2 pr-4">Nama</th>
                                 <th class="py-2 pr-4">Gender</th>
                                 <th class="py-2 pr-4">Status</th>
-                                <th class="py-2 pr-4">TA (id)</th>
-                                <th class="py-2 pr-4">Kelas (id)</th>
+                                <th class="py-2 pr-4">Tahun Ajaran (ID)</th>
+                                <th class="py-2 pr-4">Kelas (ID)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -70,19 +84,24 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="py-6 text-gray-500">
-                                        Tidak ada sample (mungkin semua baris invalid).
+                                        Tidak ada contoh data yang bisa ditampilkan (mungkin semua baris bermasalah).
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
+
+                <div class="text-xs text-gray-500 mt-3">
+                    Catatan: Kelas boleh kosong untuk data awal (misalnya siswa baru terdaftar dan belum dibagi kelas).
+                </div>
             </x-ui.card>
 
-            <x-ui.card title="Error (maks 50)" subtitle="Perbaiki file jika ada error, lalu upload ulang.">
+            <x-ui.card title="Daftar Error (maks. 50)"
+                subtitle="Jika ada error, kamu bisa perbaiki file lalu upload ulang.">
                 @if (empty($result['errors']))
                     <div class="text-sm text-gray-700">
-                        Tidak ada error. ✅ Kamu bisa commit.
+                        Tidak ada error. ✅ Data siap disimpan.
                     </div>
                 @else
                     <div class="space-y-3">
@@ -99,7 +118,7 @@
 
                         @if ($result['has_more_errors'])
                             <div class="text-xs text-gray-500">
-                                Masih ada error lain, tampilannya dipotong.
+                                Masih ada error lainnya, tampilan daftar error dipersingkat.
                             </div>
                         @endif
                     </div>
@@ -111,17 +130,17 @@
                     @csrf
                     <input type="hidden" name="token" value="{{ $token }}">
                     <x-ui.button variant="primary" type="submit" :disabled="$result['stats']['valid_rows'] === 0" data-loading-text="Menyimpan...">
-                        Commit Import
+                        Simpan Hasil Import
                     </x-ui.button>
                 </form>
 
                 @if ($result['stats']['valid_rows'] === 0)
                     <div class="text-sm text-gray-500">
-                        Tidak ada baris valid untuk di-commit.
+                        Belum ada baris yang bisa disimpan.
                     </div>
                 @elseif ($result['stats']['invalid_rows'] > 0)
                     <div class="text-sm text-gray-500 ms-auto">
-                        Ada error: commit tetap bisa, tapi baris invalid akan di-skip.
+                        Ada baris yang bermasalah. Baris tersebut akan dilewati saat proses penyimpanan.
                     </div>
                 @endif
             </div>

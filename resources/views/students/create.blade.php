@@ -120,8 +120,8 @@
                             @endforeach
                         </x-ui.select>
 
-                        <x-ui.select label="Kelas" name="classroom_id" required :error="$errors->first('classroom_id')">
-                            <option value="">- Pilih -</option>
+                        <x-ui.select label="Kelas (opsional)" name="classroom_id" :error="$errors->first('classroom_id')">
+                            <option value="">- Belum ditentukan -</option>
                             @foreach ($classrooms as $c)
                                 <option value="{{ $c->id }}" @selected((string) old('classroom_id') === (string) $c->id)>
                                     {{ $c->name }} {{ $c->major?->name ? '• ' . $c->major->name : '' }}

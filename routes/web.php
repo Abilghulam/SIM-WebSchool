@@ -19,6 +19,7 @@ use App\Http\Controllers\EnrollmentPromotionLogController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentImportController;
+use \App\Http\Controllers\StudentBulkPlacementController;
 
 Route::view('/', 'welcome');
 
@@ -124,6 +125,12 @@ Route::middleware(['auth', 'active'])->group(function () {
                     Route::post('/students/preview', [StudentImportController::class, 'preview'])->name('students.preview');
                     Route::post('/students/commit', [StudentImportController::class, 'commit'])->name('students.commit');
                 });
+
+                Route::get('/enrollments/bulk-placement', [StudentBulkPlacementController::class, 'index'])
+                    ->name('enrollments.bulk-placement.index');
+
+                Route::post('/enrollments/bulk-placement', [StudentBulkPlacementController::class, 'store'])
+                    ->name('enrollments.bulk-placement.store');
         });
 
         /**
