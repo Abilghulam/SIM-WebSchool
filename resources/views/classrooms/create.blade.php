@@ -38,7 +38,7 @@
                         </x-ui.select>
 
                         <div class="md:col-span-2">
-                            <x-ui.input name="name" label="Nama Kelas" required placeholder="Contoh: X TKJ A"
+                            <x-ui.input name="name" label="Nama Kelas" required placeholder="Contoh: 10 TKJ A"
                                 value="{{ old('name') }}" :error="$errors->first('name')" />
                         </div>
                     </div>

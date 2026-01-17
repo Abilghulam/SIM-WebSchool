@@ -283,7 +283,8 @@
                             <form method="POST" action="{{ route('notifications.mark-all-read') }}"
                                 class="px-4 py-2" @submit="markAllOptimistic()">
                                 @csrf
-                                <x-ui.button variant="secondary" class="w-full">Tandai semua dibaca</x-ui.button>
+                                <x-ui.button type="submit" variant="secondary" class="w-full">Tandai semua
+                                    dibaca</x-ui.button>
                             </form>
                         </x-slot>
                     </x-dropdown>

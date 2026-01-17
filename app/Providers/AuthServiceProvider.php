@@ -33,9 +33,9 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::define('viewMyClass', function ($user) {
-            if (($user->role_label ?? null) !== 'wali_kelas') return false;
+            if (!$user) return false;
 
-            $teacherId = $user->teacher_id; // jangan pakai relasi dulu
+            $teacherId = $user->teacher_id;
             if (!$teacherId) return false;
 
             $activeId = SchoolYear::activeId();

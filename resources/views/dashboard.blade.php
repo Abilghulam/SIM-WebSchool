@@ -87,15 +87,6 @@
 
             {{-- Quick Actions (ringkas di header) --}}
             <div class="flex items-center gap-2">
-                @if ($isAdminOrOperator)
-                    <a href="{{ route('students.create') }}">
-                        <x-ui.button variant="primary">+ Siswa</x-ui.button>
-                    </a>
-                    <a href="{{ route('teachers.create') }}">
-                        <x-ui.button variant="secondary">+ Guru</x-ui.button>
-                    </a>
-                @endif
-
                 @can('viewMyClass')
                     <a href="{{ route('my-class.index') }}">
                         <x-ui.button variant="secondary">Siswa Kelas Saya</x-ui.button>
@@ -193,10 +184,6 @@
                                 <x-ui.button variant="secondary" class="w-full">Profil Saya</x-ui.button>
                             </a>
                         @endif
-
-                        <a href="{{ route('profile.edit') }}">
-                            <x-ui.button variant="ghost" class="w-full">Pengaturan Profil</x-ui.button>
-                        </a>
                     </div>
                 </x-ui.card>
 

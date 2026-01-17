@@ -34,7 +34,7 @@
 
                     <a href="{{ route('enrollments.bulk-placement.index') }}">
                         <x-ui.button variant="secondary">
-                            Penempatan Massal
+                            Penempatan Kelas
                         </x-ui.button>
                     </a>
                 </div>

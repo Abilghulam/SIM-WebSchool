@@ -8,8 +8,11 @@
 
             <form method="POST" action="{{ route('notifications.mark-all-read') }}">
                 @csrf
-                <x-ui.button variant="secondary">Tandai semua dibaca</x-ui.button>
+                <x-ui.button type="submit" variant="secondary">
+                    Tandai semua dibaca
+                </x-ui.button>
             </form>
+
         </div>
     </x-slot>
 

@@ -66,7 +66,8 @@
                                     @if ($sy->is_active && !$sy->is_locked && ($otherYearsExist ?? false))
                                         <x-ui.button
                                             href="{{ route('enrollments.promote.index', ['from_year_id' => $sy->id]) }}"
-                                            class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700">
+                                            class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700"
+                                            type="submit">
                                             Promote
                                         </x-ui.button>
                                         <span class="text-gray-300 mx-2">|</span>
