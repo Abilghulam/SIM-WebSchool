@@ -23,6 +23,7 @@ class User extends Authenticatable
         'is_active',
         'must_change_password',
         'last_login_at',
+        'profile_photo_path',
     ];
 
     protected $hidden = [
@@ -112,5 +113,65 @@ class User extends Authenticatable
     {
         return $this->hasMany(EnrollmentPromotion::class, 'executed_by');
     }
+
+    public function profilePhotoUrl(): ?string
+    {
+        if (!$this->profile_photo_path) return null;
+        return asset('storage/' . ltrim($this->profile_photo_path, '/'));
+    }
+
+    public function avatarInitials(): string
+    {
+        $name = trim((string) $this->name);
+        if ($name === '') return '?';
+
+        $parts = preg_split('/\s+/', $name) ?: [];
+        $first = mb_substr($parts[0] ?? '', 0, 1);
+        $second = '';
+
+        if (count($parts) >= 2) {
+            $second = mb_substr($parts[1] ?? '', 0, 1);
+        } else {
+            // kalau satu kata, ambil huruf ke-2 kalau ada
+            $second = mb_substr($parts[0] ?? '', 1, 1);
+        }
+
+        $ini = mb_strtoupper($first . $second);
+        return $ini !== '' ? $ini : '?';
+    }
+
+    public function avatarColorClass(): string
+    {
+        // konsisten berdasarkan hash email/username/id
+        $seed = (string) ($this->email ?? $this->username ?? $this->id ?? 'user');
+        $hash = crc32($seed);
+
+        $classes = [
+            'bg-slate-600',
+            'bg-gray-600',
+            'bg-zinc-600',
+            'bg-stone-600',
+            'bg-red-600',
+            'bg-orange-600',
+            'bg-amber-600',
+            'bg-yellow-600',
+            'bg-lime-600',
+            'bg-green-600',
+            'bg-emerald-600',
+            'bg-teal-600',
+            'bg-cyan-600',
+            'bg-sky-600',
+            'bg-blue-600',
+            'bg-indigo-600',
+            'bg-violet-600',
+            'bg-purple-600',
+            'bg-fuchsia-600',
+            'bg-pink-600',
+            'bg-rose-600',
+        ];
+
+        return $classes[$hash % count($classes)];
+    }
+
 
 }

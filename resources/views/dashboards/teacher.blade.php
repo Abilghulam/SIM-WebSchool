@@ -42,19 +42,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <a href="{{ route('password.change') }}">
-                    <x-ui.button variant="secondary">Ganti Password</x-ui.button>
-                </a>
 
-                <a href="{{ route('profile.edit') }}">
-                    <x-ui.button variant="ghost">Profil</x-ui.button>
-                </a>
-
-                @if ($user->teacher_id)
-                    <a href="{{ route('teachers.show', $user->teacher_id) }}">
-                        <x-ui.button variant="primary">Profil Saya</x-ui.button>
-                    </a>
-                @endif
             </div>
         </div>
     </x-slot>
@@ -159,14 +147,6 @@
                                 <x-ui.button class="w-full">Profil Saya</x-ui.button>
                             </a>
                         @endif
-
-                        <a href="{{ route('password.change') }}">
-                            <x-ui.button variant="secondary" class="w-full">Ganti Password</x-ui.button>
-                        </a>
-
-                        <a href="{{ route('profile.edit') }}">
-                            <x-ui.button variant="ghost" class="w-full">Pengaturan Profil</x-ui.button>
-                        </a>
                     </div>
                 </x-ui.card>
             </div>

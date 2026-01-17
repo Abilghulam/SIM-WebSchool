@@ -290,17 +290,62 @@
                 </div>
 
                 {{-- USER DROPDOWN --}}
+                @php
+                    $u = auth()->user();
+                    $photoUrl = $u?->profilePhotoUrl();
+
+                    // fallback warna inline (anti Tailwind purge untuk class dinamis)
+                    $seed = (string) ($u->email ?? ($u->username ?? ($u->id ?? 'user')));
+                    $hash = crc32($seed);
+                    $palette = [
+                        '#475569',
+                        '#4b5563',
+                        '#52525b',
+                        '#57534e',
+                        '#dc2626',
+                        '#ea580c',
+                        '#d97706',
+                        '#ca8a04',
+                        '#65a30d',
+                        '#16a34a',
+                        '#059669',
+                        '#0d9488',
+                        '#0891b2',
+                        '#0284c7',
+                        '#2563eb',
+                        '#4f46e5',
+                        '#7c3aed',
+                        '#9333ea',
+                        '#c026d3',
+                        '#db2777',
+                        '#e11d48',
+                    ];
+                    $bg = $palette[$hash % count($palette)];
+                @endphp
+
                 <x-dropdown align="right" width="48" contentClasses="py-1 bg-white">
                     <x-slot name="trigger">
-                        <button
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-white/10"
+                        <button type="button" class="inline-flex items-center px-2 py-2 rounded-lg hover:bg-white/10"
                             style="color: rgba(255,255,255,0.88);">
-                            <div class="max-w-[160px] truncate">{{ Auth::user()->name }}</div>
-                            <svg class="ml-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                            <div class="flex items-center gap-2">
+                                @if ($photoUrl)
+                                    <img src="{{ $photoUrl }}" alt="Foto Profil"
+                                        class="h-8 w-8 rounded-full object-cover ring-1 ring-white/20 shrink-0">
+                                @else
+                                    <div class="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 leading-none"
+                                        style="background-color: {{ $bg }};" title="{{ $u->name }}">
+                                        {{ $u->avatarInitials() }}
+                                    </div>
+                                @endif
+
+                                {{-- caret --}}
+                                <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
                         </button>
                     </x-slot>
 
