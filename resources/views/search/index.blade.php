@@ -100,10 +100,14 @@
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <a href="{{ route('students.show', $student) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    Detail
-                                </a>
+                                @can('view', $student)
+                                    <a href="{{ route('students.show', $student) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Detail
+                                    </a>
+                                @else
+                                    <span class="text-gray-400 text-sm">-</span>
+                                @endcan
                             </td>
                         </tr>
                     @empty
@@ -171,10 +175,14 @@
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <a href="{{ route('teachers.show', $teacher) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    Detail
-                                </a>
+                                @can('view', $teacher)
+                                    <a href="{{ route('teachers.show', $teacher) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Detail
+                                    </a>
+                                @else
+                                    <span class="text-gray-400 text-sm">-</span>
+                                @endcan
                             </td>
                         </tr>
                     @empty

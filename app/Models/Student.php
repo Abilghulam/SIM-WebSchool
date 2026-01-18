@@ -69,32 +69,37 @@ class Student extends Model
 
     public function scopeVisibleTo(Builder $query, \App\Models\User $user): Builder
     {
-        // Admin/TU: bisa lihat semua
+        // Admin/Operator/Pimpinan: full access
         if ($user->canManageSchoolData() || $user->isPimpinan()) {
             return $query;
         }
 
-        // Wali kelas: hanya siswa di kelas yang dia pegang pada TA aktif
-        if ($user->isWaliKelas()) {
-            $activeYearId = SchoolYear::activeId();
-            if (!$activeYearId || !$user->teacher_id) {
-                // tidak ada TA aktif / user tidak terhubung ke teacher => jangan tampilkan apa pun
-                return $query->whereRaw('1=0');
-            }
-
-            $classroomIds = HomeroomAssignment::query()
-                ->where('school_year_id', $activeYearId)
-                ->where('teacher_id', $user->teacher_id)
-                ->pluck('classroom_id');
-
-            return $query->whereHas('enrollments', function (Builder $e) use ($activeYearId, $classroomIds) {
-                $e->where('school_year_id', $activeYearId)
-                  ->whereIn('classroom_id', $classroomIds)
-                  ->where('is_active', true);
-            });
+        // Teacher must be linked
+        if (!$user->teacher_id) {
+            return $query->whereKey([]); // no results
         }
 
-        // Guru biasa: default tidak bisa lihat siswa
-        return $query->whereRaw('1=0');
+        $activeYearId = SchoolYear::activeId();
+        if (!$activeYearId) {
+            return $query->whereKey([]); // no results
+        }
+
+        // "Wali kelas secara fungsional": punya homeroom assignment di TA aktif
+        $classroomIds = HomeroomAssignment::query()
+            ->where('school_year_id', $activeYearId)
+            ->where('teacher_id', $user->teacher_id)
+            ->pluck('classroom_id');
+
+        if ($classroomIds->isEmpty()) {
+            // Guru biasa: tidak bisa melihat siswa
+            return $query->whereKey([]);
+        }
+
+        return $query->whereHas('enrollments', function (Builder $e) use ($activeYearId, $classroomIds) {
+            $e->where('school_year_id', $activeYearId)
+                ->whereIn('classroom_id', $classroomIds)
+                ->where('is_active', true);
+        });
     }
+
 }

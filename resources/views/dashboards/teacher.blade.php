@@ -273,7 +273,7 @@
                                         </div>
                                     </div>
                                 @else
-                                    <div class="mt-5 text-sm text-gray-600">Profil sudah cukup lengkap. ✅</div>
+                                    <div class="mt-5 text-sm text-gray-600">Profil sudah cukup lengkap.</div>
                                 @endif
                             @endif
                         </x-ui.card>

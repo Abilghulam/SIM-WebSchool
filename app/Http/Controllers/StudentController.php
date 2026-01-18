@@ -24,7 +24,7 @@ class StudentController extends BaseController
     use AuthorizesRequests;
     public function index(Request $request)
     {
-        if (($request->user()->role_label ?? null) === 'wali_kelas') {
+        if ($request->user()->can('viewMyClass')) {
             return redirect()->route('my-class.index');
         }
 

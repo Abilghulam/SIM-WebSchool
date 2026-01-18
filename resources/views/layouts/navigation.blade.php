@@ -161,21 +161,42 @@
                             {{-- Students --}}
                             <template x-if="students.length">
                                 <div class="border-t border-gray-100">
-                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Siswa
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Siswa
                                     </div>
+
                                     <template x-for="item in students" :key="'s' + item.id">
-                                        <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
-                                            <div class="text-sm font-semibold text-gray-900" x-text="item.title"></div>
-                                            <div class="text-xs text-gray-500">
-                                                <span x-text="item.code"></span>
-                                                <template x-if="item.classroom">
-                                                    <span> • <span x-text="item.classroom"></span></span>
-                                                </template>
-                                                <template x-if="item.major">
-                                                    <span> • <span x-text="item.major"></span></span>
-                                                </template>
-                                            </div>
-                                        </a>
+                                        <div>
+                                            <!-- clickable -->
+                                            <template x-if="item.url">
+                                                <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
+                                                    <div class="text-sm font-semibold text-gray-900"
+                                                        x-text="item.title"></div>
+                                                    <div class="text-xs text-gray-500">
+                                                        <span x-text="item.code"></span>
+                                                        <template x-if="item.classroom">
+                                                            <span> • <span x-text="item.classroom"></span></span>
+                                                        </template>
+                                                        <template x-if="item.major">
+                                                            <span> • <span x-text="item.major"></span></span>
+                                                        </template>
+                                                    </div>
+                                                </a>
+                                            </template>
+
+                                            <!-- non-clickable -->
+                                            <template x-if="!item.url">
+                                                <div
+                                                    class="block px-4 py-2 bg-gray-50/40 cursor-not-allowed opacity-70">
+                                                    <div class="text-sm font-semibold text-gray-900"
+                                                        x-text="item.title"></div>
+                                                    <div class="text-xs text-gray-500">
+                                                        <span x-text="item.code"></span>
+                                                        <span class="text-gray-400"> • Tidak punya akses detail</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </template>
                                 </div>
                             </template>
@@ -183,17 +204,39 @@
                             {{-- Teachers --}}
                             <template x-if="teachers.length">
                                 <div class="border-t border-gray-100">
-                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">Guru</div>
+                                    <div class="px-4 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase">
+                                        Guru
+                                    </div>
+
                                     <template x-for="item in teachers" :key="'t' + item.id">
-                                        <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
-                                            <div class="text-sm font-semibold text-gray-900" x-text="item.title"></div>
-                                            <div class="text-xs text-gray-500">
-                                                <span x-text="item.code"></span>
-                                                <template x-if="item.homeroom">
-                                                    <span> • Wali: <span x-text="item.homeroom"></span></span>
-                                                </template>
-                                            </div>
-                                        </a>
+                                        <div>
+                                            <!-- clickable -->
+                                            <template x-if="item.url">
+                                                <a :href="item.url" class="block px-4 py-2 hover:bg-gray-50">
+                                                    <div class="text-sm font-semibold text-gray-900"
+                                                        x-text="item.title"></div>
+                                                    <div class="text-xs text-gray-500">
+                                                        <span x-text="item.code"></span>
+                                                        <template x-if="item.homeroom">
+                                                            <span> • Wali: <span x-text="item.homeroom"></span></span>
+                                                        </template>
+                                                    </div>
+                                                </a>
+                                            </template>
+
+                                            <!-- non-clickable -->
+                                            <template x-if="!item.url">
+                                                <div
+                                                    class="block px-4 py-2 bg-gray-50/40 cursor-not-allowed opacity-70">
+                                                    <div class="text-sm font-semibold text-gray-900"
+                                                        x-text="item.title"></div>
+                                                    <div class="text-xs text-gray-500">
+                                                        <span x-text="item.code"></span>
+                                                        <span class="text-gray-400"> • Tidak punya akses detail</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </template>
                                 </div>
                             </template>
@@ -351,7 +394,7 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">Profil</x-dropdown-link>
+                        <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

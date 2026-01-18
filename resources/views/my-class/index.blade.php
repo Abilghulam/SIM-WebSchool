@@ -66,10 +66,14 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <a href="{{ route('students.show', $s) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    Detail
-                                </a>
+                                @can('view', $s)
+                                    <a href="{{ route('students.show', $s) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Detail
+                                    </a>
+                                @else
+                                    <span class="text-gray-400 font-semibold">-</span>
+                                @endcan
                             </td>
                         </tr>
                     @empty

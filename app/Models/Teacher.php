@@ -64,21 +64,15 @@ class Teacher extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        // Admin/Operator/Pimpinan boleh lihat semua data guru
         if ($user->canManageSchoolData() || $user->isPimpinan()) {
             return $query;
         }
 
-        // Guru hanya boleh lihat data dirinya sendiri (berdasarkan user.teacher_id)
-        if ($user->isGuru() && $user->teacher_id) {
-            return $query->where('id', $user->teacher_id);
+        if ($user->teacher_id) {
+            return $query->whereKey($user->teacher_id);
         }
 
-        // Wali kelas juga guru; kita putuskan: wali kelas boleh lihat data dirinya sendiri saja
-        if ($user->isWaliKelas() && $user->teacher_id) {
-            return $query->where('id', $user->teacher_id);
-        }
-
-        return $query->whereRaw('1=0');
+        return $query->whereKey([]);
     }
+
 }

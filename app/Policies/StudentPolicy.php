@@ -11,8 +11,14 @@ class StudentPolicy
 {
     public function viewAny(User $user): bool
     {
-        // Admin, Operator, Pimpinan boleh melihat daftar
-        if ($user->canManageSchoolData() || $user->isPimpinan() || $user->isWaliKelas()) {
+        // Admin/Operator/Pimpinan boleh lihat daftar
+        if ($user->canManageSchoolData() || $user->isPimpinan()) {
+            return true;
+        }
+
+        // Homeroom assignment TA aktif => boleh akses konteks siswa kelasnya
+        // (meskipun role_label belum/ tidak wali_kelas)
+        if ($user->can('viewMyClass')) {
             return true;
         }
 
@@ -26,8 +32,8 @@ class StudentPolicy
             return true;
         }
 
-        // Wali kelas hanya siswa kelasnya (TA aktif)
-        if ($user->isWaliKelas() && $user->teacher_id) {
+        // Homeroom assignment TA aktif => boleh lihat siswa di kelasnya
+        if ($user->can('viewMyClass') && $user->teacher_id) {
             $activeYearId = SchoolYear::activeId();
             if (!$activeYearId) return false;
 
@@ -35,6 +41,8 @@ class StudentPolicy
                 ->where('school_year_id', $activeYearId)
                 ->where('teacher_id', $user->teacher_id)
                 ->pluck('classroom_id');
+
+            if ($classroomIds->isEmpty()) return false;
 
             return $student->enrollments()
                 ->where('school_year_id', $activeYearId)
@@ -48,21 +56,16 @@ class StudentPolicy
 
     public function create(User $user): bool
     {
-        // hanya Admin/Operator yang boleh tambah siswa
         return $user->canManageSchoolData();
     }
 
     public function update(User $user, Student $student): bool
     {
-        // Admin/Operator boleh update penuh
-        if ($user->canManageSchoolData()) return true;
-
-        return false;
+        return $user->canManageSchoolData();
     }
 
     public function delete(User $user, Student $student): bool
     {
-        // biasanya hanya Admin (atau Operator jika kebijakan mengizinkan)
         return $user->isAdmin();
     }
 
@@ -78,7 +81,6 @@ class StudentPolicy
 
     public function uploadDocument(User $user, Student $student): bool
     {
-        if ($user->canManageSchoolData()) return true;
-        return false;
+        return $user->canManageSchoolData();
     }
 }

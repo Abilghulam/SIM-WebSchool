@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\SchoolYear;
+use App\Models\HomeroomAssignment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 
 class GlobalSearchController extends Controller
 {
@@ -23,20 +24,55 @@ class GlobalSearchController extends Controller
         }
 
         $user = $request->user();
+        $activeYearId = SchoolYear::activeId();
 
-        // === STUDENTS ===
-        $students = Student::query()
-            ->visibleTo($user)
+        // =========================
+        // ROLE: ADMIN/OPERATOR/PIMPINAN => full search
+        // =========================
+        $isFullAccess = $user->canManageSchoolData() || $user->isPimpinan();
+
+        // =========================
+        // STUDENTS
+        // =========================
+        $studentsQ = Student::query()
             ->with(['activeEnrollment.classroom.major'])
             ->where(function ($w) use ($q) {
                 $w->where('full_name', 'like', "%{$q}%")
-                  ->orWhere('nis', 'like', "%{$q}%");
-            })
+                    ->orWhere('nis', 'like', "%{$q}%");
+            });
+
+        if ($isFullAccess) {
+            // biarkan full (atau tetap pakai visibleTo kalau kamu butuh filtering internal)
+            $studentsQ->visibleTo($user);
+        } else {
+            // Guru/Wali: hanya siswa kelas yang diampu (TA aktif)
+            // Kalau tidak punya assignment / TA aktif kosong => hasil kosong
+            if (!$activeYearId || !$user->teacher_id || !Gate::allows('viewMyClass')) {
+                $studentsQ->whereRaw('1=0');
+            } else {
+                $classroomIds = HomeroomAssignment::query()
+                    ->where('school_year_id', $activeYearId)
+                    ->where('teacher_id', $user->teacher_id)
+                    ->pluck('classroom_id');
+
+                $studentsQ->whereHas('enrollments', function ($e) use ($activeYearId, $classroomIds) {
+                    $e->where('school_year_id', $activeYearId)
+                        ->where('is_active', true)
+                        ->whereIn('classroom_id', $classroomIds);
+                });
+            }
+        }
+
+        $students = $studentsQ
             ->orderBy('full_name')
             ->limit(8)
             ->get()
-            ->map(function ($s) {
+            ->map(function ($s) use ($user) {
                 $enr = $s->activeEnrollment;
+
+                // safety: url hanya diberikan kalau benar-benar boleh view detail
+                $canView = Gate::forUser($user)->allows('view', $s);
+
                 return [
                     'type' => 'student',
                     'id' => $s->id,
@@ -44,33 +80,44 @@ class GlobalSearchController extends Controller
                     'code' => $s->nis,
                     'classroom' => $enr?->classroom?->name,
                     'major' => $enr?->classroom?->major?->name,
-                    'url' => route('students.show', $s),
+                    'url' => $canView ? route('students.show', $s) : null,
                 ];
-            });
+            })
+            ->values();
 
-        // === TEACHERS ===
-        // kamu minta tampil "wali kelas mengampu kelas apa"
-        // kita ambil kelas di TA aktif (kalau ada) lewat relasi homeroomAssignments
-        $activeYearId = SchoolYear::activeId();
-
-        $teachers = Teacher::query()
-            ->visibleTo($user)
+        // =========================
+        // TEACHERS
+        // =========================
+        $teachersQ = Teacher::query()
             ->with([
-                'homeroomAssignments' => function ($q) use ($activeYearId) {
+                'homeroomAssignments' => function ($q2) use ($activeYearId) {
                     if ($activeYearId) {
-                        $q->where('school_year_id', $activeYearId);
+                        $q2->where('school_year_id', $activeYearId);
                     }
-                    $q->with('classroom');
+                    $q2->with('classroom');
                 },
             ])
             ->where(function ($w) use ($q) {
                 $w->where('full_name', 'like', "%{$q}%")
-                  ->orWhere('nip', 'like', "%{$q}%");
-            })
+                    ->orWhere('nip', 'like', "%{$q}%");
+            });
+
+        if ($isFullAccess) {
+            $teachersQ->visibleTo($user);
+        } else {
+            // Guru/Wali: hanya diri sendiri (biar gak nirfungsi tapi tetap aman)
+            if (!$user->teacher_id) {
+                $teachersQ->whereRaw('1=0');
+            } else {
+                $teachersQ->where('id', $user->teacher_id);
+            }
+        }
+
+        $teachers = $teachersQ
             ->orderBy('full_name')
             ->limit(8)
             ->get()
-            ->map(function ($t) {
+            ->map(function ($t) use ($user) {
                 $classes = $t->homeroomAssignments
                     ?->pluck('classroom.name')
                     ->filter()
@@ -78,15 +125,18 @@ class GlobalSearchController extends Controller
                     ->values()
                     ->all();
 
+                $canView = Gate::forUser($user)->allows('view', $t);
+
                 return [
                     'type' => 'teacher',
                     'id' => $t->id,
                     'title' => $t->full_name,
                     'code' => $t->nip,
                     'homeroom' => !empty($classes) ? implode(', ', $classes) : null,
-                    'url' => route('teachers.show', $t),
+                    'url' => $canView ? route('teachers.show', $t) : null,
                 ];
-            });
+            })
+            ->values();
 
         return response()->json([
             'query' => $q,
@@ -95,31 +145,50 @@ class GlobalSearchController extends Controller
         ]);
     }
 
-    /**
-     * Optional tapi recommended: halaman hasil lengkap (Enter = ke sini)
-     */
     public function index(Request $request)
     {
         $q = trim((string) $request->get('q', ''));
         $user = $request->user();
-
         $activeYearId = SchoolYear::activeId();
 
-        $students = Student::query()
-            ->visibleTo($user)
+        $isFullAccess = $user->canManageSchoolData() || $user->isPimpinan();
+
+        // STUDENTS
+        $studentsQ = Student::query()
             ->with(['activeEnrollment.classroom.major'])
             ->when($q !== '', function ($qq) use ($q) {
                 $qq->where(function ($w) use ($q) {
                     $w->where('full_name', 'like', "%{$q}%")
-                      ->orWhere('nis', 'like', "%{$q}%");
+                        ->orWhere('nis', 'like', "%{$q}%");
                 });
-            })
+            });
+
+        if ($isFullAccess) {
+            $studentsQ->visibleTo($user);
+        } else {
+            if (!$activeYearId || !$user->teacher_id || !Gate::allows('viewMyClass')) {
+                $studentsQ->whereRaw('1=0');
+            } else {
+                $classroomIds = HomeroomAssignment::query()
+                    ->where('school_year_id', $activeYearId)
+                    ->where('teacher_id', $user->teacher_id)
+                    ->pluck('classroom_id');
+
+                $studentsQ->whereHas('enrollments', function ($e) use ($activeYearId, $classroomIds) {
+                    $e->where('school_year_id', $activeYearId)
+                        ->where('is_active', true)
+                        ->whereIn('classroom_id', $classroomIds);
+                });
+            }
+        }
+
+        $students = $studentsQ
             ->orderBy('full_name')
             ->paginate(10, ['*'], 'students_page')
             ->withQueryString();
 
-        $teachers = Teacher::query()
-            ->visibleTo($user)
+        // TEACHERS
+        $teachersQ = Teacher::query()
             ->with([
                 'homeroomAssignments' => function ($q2) use ($activeYearId) {
                     if ($activeYearId) {
@@ -131,14 +200,25 @@ class GlobalSearchController extends Controller
             ->when($q !== '', function ($qq) use ($q) {
                 $qq->where(function ($w) use ($q) {
                     $w->where('full_name', 'like', "%{$q}%")
-                      ->orWhere('nip', 'like', "%{$q}%");
+                        ->orWhere('nip', 'like', "%{$q}%");
                 });
-            })
+            });
+
+        if ($isFullAccess) {
+            $teachersQ->visibleTo($user);
+        } else {
+            if (!$user->teacher_id) {
+                $teachersQ->whereRaw('1=0');
+            } else {
+                $teachersQ->where('id', $user->teacher_id);
+            }
+        }
+
+        $teachers = $teachersQ
             ->orderBy('full_name')
             ->paginate(10, ['*'], 'teachers_page')
             ->withQueryString();
 
         return view('search.index', compact('q', 'students', 'teachers'));
     }
-
 }
