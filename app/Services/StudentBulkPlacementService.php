@@ -5,95 +5,120 @@ namespace App\Services;
 use App\Models\SchoolYear;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class StudentBulkPlacementService
 {
-    public function candidatesQuery(array $filters)
-    {
-        $q = Student::query()
-            ->where('status', 'aktif')
-            ->whereDoesntHave('enrollments', function ($e) {
-                $e->withTrashed(); // penting: “belum pernah ada enrollment”
-            });
-
-        if (!empty($filters['search'])) {
-            $s = trim((string) $filters['search']);
-            $q->where(function ($w) use ($s) {
-                $w->where('full_name', 'like', "%{$s}%")
-                  ->orWhere('nis', 'like', "%{$s}%");
-            });
-        }
-
-        if (!empty($filters['entry_year'])) {
-            $q->where('entry_year', (int) $filters['entry_year']);
-        }
-
-        return $q->orderBy('full_name');
-    }
-
     /**
-     * @return array{processed:int, created:int, updated:int, skipped:int}
+     * Penempatan massal berdasarkan ID yang dipilih (match dengan Controller kamu saat ini).
+     *
+     * @param array<int> $studentIds
+     * @return array{processed:int, created:int, updated:int, skipped:int, school_year_id:int}
      */
-    public function place(array $filters, string $applyMode, ?array $studentIds, ?int $classroomId, ?string $note): array
+    public function placeSelected(array $studentIds, ?int $classroomId, ?string $note, User $actor): array
     {
-        $activeYearId = SchoolYear::activeId();
+        $activeYear = SchoolYear::query()->where('is_active', true)->first();
 
-        if (!$activeYearId) {
+        if (!$activeYear) {
             throw ValidationException::withMessages([
-                'school_year_id' => 'Tidak ada Tahun Ajaran aktif. Aktifkan Tahun Ajaran terlebih dahulu.',
+                'school_year_id' => 'Tidak ada Tahun Ajaran aktif. Aktifkan dulu Tahun Ajaran.',
             ]);
         }
 
-        $q = $this->candidatesQuery($filters);
-
-        if ($applyMode === 'selected') {
-            $ids = collect($studentIds ?? [])->map(fn ($x) => (int) $x)->values()->all();
-
-            if (count($ids) === 0) {
-                throw ValidationException::withMessages([
-                    'student_ids' => 'Pilih minimal 1 siswa untuk diproses.',
-                ]);
-            }
-
-            $q->whereIn('id', $ids);
+        if ($activeYear->is_locked) {
+            throw ValidationException::withMessages([
+                'school_year_id' => 'Tahun Ajaran aktif sedang terkunci. Penempatan massal tidak dapat dilakukan.',
+            ]);
         }
 
-        $summary = ['processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0];
+        $activeYearId = (int) $activeYear->id;
 
-        DB::transaction(function () use ($q, $activeYearId, $classroomId, $note, &$summary) {
-            // chunk biar aman untuk data banyak
-            $q->chunkById(300, function ($students) use ($activeYearId, $classroomId, $note, &$summary) {
-                foreach ($students as $student) {
-                    $summary['processed']++;
+        $ids = collect($studentIds)->map(fn ($x) => (int) $x)->values()->all();
+        if (count($ids) === 0) {
+            throw ValidationException::withMessages([
+                'student_ids' => 'Pilih minimal 1 siswa untuk diproses.',
+            ]);
+        }
 
-                    // guard ekstra: pastikan masih eligible (race condition)
-                    $hasAnyEnrollment = $student->enrollments()->withTrashed()->exists();
-                    if ($hasAnyEnrollment || $student->status !== 'aktif') {
-                        $summary['skipped']++;
-                        continue;
-                    }
+        $processed = 0;
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
 
-                    $enrollment = StudentEnrollment::query()->updateOrCreate(
-                        [
-                            'student_id' => $student->id,
-                            'school_year_id' => $activeYearId,
-                        ],
-                        [
-                            'classroom_id' => $classroomId, // nullable OK
-                            'is_active' => true,
-                            'note' => $note,
-                        ]
-                    );
+        DB::transaction(function () use (
+            $ids, $activeYearId, $classroomId, $note,
+            &$processed, &$created, &$updated, &$skipped
+        ) {
+            $students = Student::query()
+                ->whereIn('id', $ids)
+                ->where('status', 'aktif')
+                ->get(['id', 'status']);
 
-                    // updateOrCreate tidak kasih flag created, jadi kita cek via wasRecentlyCreated
-                    if ($enrollment->wasRecentlyCreated) $summary['created']++;
-                    else $summary['updated']++;
+            $foundIds = $students->pluck('id')->map(fn ($x) => (int) $x)->all();
+            $skipped += max(0, count($ids) - count($foundIds));
+
+            foreach ($students as $student) {
+                $processed++;
+
+                $enr = StudentEnrollment::query()
+                    ->where('student_id', $student->id)
+                    ->where('school_year_id', $activeYearId)
+                    ->where('is_active', true)
+                    ->first();
+
+                if (!$enr) {
+                    StudentEnrollment::query()->create([
+                        'student_id' => $student->id,
+                        'school_year_id' => $activeYearId,
+                        'classroom_id' => $classroomId, // null boleh
+                        'is_active' => true,
+                        'note' => $note,
+                    ]);
+                    $created++;
+                    continue;
                 }
-            });
+
+                if ($enr->classroom_id === null) {
+                    $enr->update([
+                        'classroom_id' => $classroomId, // null tetap boleh
+                        'note' => $note,
+                    ]);
+                    $updated++;
+                    continue;
+                }
+
+                $skipped++;
+            }
         });
 
-        return $summary;
+        // ✅ Activity log: bulk placement (di service)
+        activity()
+            ->useLog('domain')
+            ->event('bulk_placement_executed')
+            ->causedBy($actor)
+            ->withProperties([
+                'feature' => 'students_bulk_placement',
+                'school_year_id' => $activeYearId,
+                'classroom_id' => $classroomId,
+                'note_filled' => !empty($note),
+
+                'processed' => $processed,
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+
+                'selected_count' => count($ids),
+            ])
+            ->log('Students bulk placement executed');
+
+        return [
+            'processed' => $processed,
+            'created' => $created,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'school_year_id' => $activeYearId,
+        ];
     }
 }

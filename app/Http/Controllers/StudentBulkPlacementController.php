@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StudentBulkPlacementStoreRequest;
+use App\Services\StudentBulkPlacementService;
 use App\Models\Classroom;
 use App\Models\SchoolYear;
 use App\Models\Student;
@@ -70,78 +71,22 @@ class StudentBulkPlacementController extends BaseController
         ]);
     }
 
-    public function store(StudentBulkPlacementStoreRequest $request)
+
+    public function store(StudentBulkPlacementStoreRequest $request, StudentBulkPlacementService $service)
     {
         $this->authorize('manageSchoolData');
-
-        $activeYear = SchoolYear::query()->where('is_active', true)->first();
-        abort_if(!$activeYear, 422, 'Tidak ada Tahun Ajaran aktif. Aktifkan dulu Tahun Ajaran.');
-        abort_if($activeYear->is_locked, 422, 'Tahun Ajaran aktif sedang terkunci. Penempatan massal tidak dapat dilakukan.');
-
-        $activeYearId = (int) $activeYear->id;
 
         $studentIds = collect($request->validated('student_ids'))->map(fn ($x) => (int) $x)->values()->all();
         $classroomId = $request->validated('classroom_id'); // boleh null
         $note = $request->validated('note');
 
-        $processed = 0;
-        $created = 0;
-        $updated = 0;
-        $skipped = 0;
-
-        DB::transaction(function () use (
-            $studentIds, $activeYearId, $classroomId, $note,
-            &$processed, &$created, &$updated, &$skipped
-        ) {
-            // Ambil siswa yang valid + status aktif
-            $students = Student::query()
-                ->whereIn('id', $studentIds)
-                ->where('status', 'aktif')
-                ->get(['id', 'status']);
-
-            $foundIds = $students->pluck('id')->map(fn ($x) => (int) $x)->all();
-            $skipped += max(0, count($studentIds) - count($foundIds));
-
-            foreach ($students as $student) {
-                $processed++;
-
-                // Cari enrollment aktif pada TA aktif
-                $enr = StudentEnrollment::query()
-                    ->where('student_id', $student->id)
-                    ->where('school_year_id', $activeYearId)
-                    ->where('is_active', true)
-                    ->first();
-
-                // Case 1: belum ada enrollment aktif di TA aktif => buat baru
-                if (!$enr) {
-                    StudentEnrollment::query()->create([
-                        'student_id' => $student->id,
-                        'school_year_id' => $activeYearId,
-                        'classroom_id' => $classroomId, // null boleh
-                        'is_active' => true,
-                        'note' => $note,
-                    ]);
-                    $created++;
-                    continue;
-                }
-
-                // Case 2: sudah ada enrollment aktif tapi kelas kosong => update isi kelas (atau biarkan null)
-                if ($enr->classroom_id === null) {
-                    $enr->update([
-                        'classroom_id' => $classroomId, // null tetap boleh
-                        'note' => $note,
-                    ]);
-                    $updated++;
-                    continue;
-                }
-
-                // Case 3: sudah punya kelas => skip
-                $skipped++;
-            }
-        });
+        $summary = $service->placeSelected($studentIds, $classroomId, $note, $request->user());
 
         return redirect()
             ->route('enrollments.bulk-placement.index')
-            ->with('success', "Penempatan massal selesai. Diproses: {$processed}. Dibuat: {$created}. Diperbarui: {$updated}. Dilewati: {$skipped}.");
+            ->with(
+                'success',
+                "Penempatan massal selesai. Diproses: {$summary['processed']}. Dibuat: {$summary['created']}. Diperbarui: {$summary['updated']}. Dilewati: {$summary['skipped']}."
+            );
     }
 }

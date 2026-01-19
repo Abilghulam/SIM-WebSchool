@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Models\SchoolYear;
 use App\Models\HomeroomAssignment;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Student extends Model
 {
-    use SoftDeletes, HasFactory;
+    use SoftDeletes, HasFactory, LogsActivity;
 
     protected $fillable = [
         'nis',
@@ -65,6 +67,37 @@ class Student extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(StudentDocument::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('domain')
+            ->logOnly([
+                'nis',
+                'full_name',
+                'gender',
+                'birth_place',
+                'birth_date',
+                'religion',
+                'phone',
+                'email',
+                'address',
+                'father_name',
+                'mother_name',
+                'guardian_name',
+                'parent_phone',
+                'status',
+                'entry_year',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function getDescriptionForEvent(string $eventName): string
+    {
+        // eventName: created|updated|deleted|restored (kalau pakai restore)
+        return "Student {$eventName}";
     }
 
     public function scopeVisibleTo(Builder $query, \App\Models\User $user): Builder

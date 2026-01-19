@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Activitylog\Models\Activity;
 
 class StudentImportService
 {
@@ -156,6 +157,33 @@ class StudentImportService
 
             }
         });
+
+        // ✅ Activity log: import commit (ringkasan)
+        activity()
+            ->useLog('domain')
+            ->event('import_committed')
+            ->causedBy($actor)
+            ->withProperties([
+                'feature' => 'students_import',
+                'mode' => $options['mode'] ?? 'students_only',
+                'strategy' => $options['strategy'] ?? 'upsert_by_nis',
+                'default_school_year_id' => $options['default_school_year_id'] ?? null,
+                'default_classroom_id' => $options['default_classroom_id'] ?? null,
+                'default_enrollment_is_active' => $options['default_enrollment_is_active'] ?? null,
+
+                // hasil
+                'inserted' => $inserted,
+                'updated' => $updated,
+                'enrollments_upserted' => $enrollmentsUpserted,
+                'skipped' => $skipped,
+                'total_processed' => ($inserted + $updated + $skipped),
+
+                // audit kecil (tanpa simpan isi file)
+                'source' => [
+                    'path_hash' => sha1($absPath), // aman untuk audit tanpa bocor path asli
+                ],
+            ])
+            ->log('Students import committed');
 
         return [
             'inserted' => $inserted,

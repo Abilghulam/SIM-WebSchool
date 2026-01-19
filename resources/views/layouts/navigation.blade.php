@@ -396,6 +396,10 @@
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
 
+                        @if (auth()->user()?->isAdmin())
+                            <x-dropdown-link :href="route('activity-logs.index')">Activity Log</x-dropdown-link>
+                        @endif
+
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <x-dropdown-link :href="route('logout')"

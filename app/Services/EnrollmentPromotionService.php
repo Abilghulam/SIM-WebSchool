@@ -244,6 +244,29 @@ class EnrollmentPromotionService
                 'status' => 'success',
                 'error_message' => null,
             ]);
+
+            // ✅ Activity log: promotion executed (ringkasan)
+            activity()
+                ->useLog('domain')
+                ->event('promotion_executed')
+                ->causedBy($executedBy ? \App\Models\User::query()->find($executedBy) : null)
+                ->performedOn($promotion)
+                ->withProperties([
+                    'feature' => 'enrollment_promotion',
+                    'from_school_year_id' => $fromYearId,
+                    'to_school_year_id' => $toYearId,
+                    'mapping_classrooms_count' => count($map),
+
+                    // hasil total (sinkron dengan kolom promotion)
+                    'total_students' => $totals['total_students'],
+                    'moved_students' => $totals['moved_students'],
+                    'graduated_students' => $totals['graduated_students'],
+                    'skipped_students' => $totals['skipped_students'],
+
+                    // efek penting
+                    'from_year_locked' => true,
+                ])
+                ->log('Enrollment promotion executed');
         });
     }
 

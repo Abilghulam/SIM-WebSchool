@@ -11,7 +11,6 @@
     $className = $classroom?->name ?? null;
     $majorName = data_get($stats ?? [], 'major');
     $studentCount = (int) data_get($stats ?? [], 'students', 0);
-
     $recentStudents = $recentStudents ?? collect();
 
     // profile checks (safe)
@@ -26,22 +25,30 @@
     ])
         ->filter()
         ->values();
+
+    $accountStatusText = $user->is_active ? 'Aktif' : 'Nonaktif';
+    $accountStatusVariant = $user->is_active ? 'green' : 'gray';
+
+    $mustChangeText = $user->must_change_password ? 'Ya' : 'Tidak';
+    $mustChangeVariant = $user->must_change_password ? 'amber' : 'green';
 @endphp
 
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-start justify-between gap-4">
-            <div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
                 <h2 class="text-xl font-semibold text-gray-900">
                     {{ $isHomeroomMode ? 'Dashboard Wali Kelas' : 'Dashboard Guru' }}
                 </h2>
 
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                    <span>
-                        Selamat datang, <span class="font-semibold text-gray-700">{{ $user->name }}</span>
+                    <span class="min-w-0">
+                        Selamat datang,
+                        <span class="font-semibold text-gray-700">{{ $user->name }}</span>
                     </span>
 
                     <span class="text-gray-300">•</span>
+
                     @if ($activeName)
                         <x-ui.badge variant="green">TA Aktif: {{ $activeName }}</x-ui.badge>
                     @else
@@ -55,7 +62,18 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2"></div>
+            {{-- Quick header actions (aman untuk semua guru) --}}
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('password.change') }}">
+                    <x-ui.button variant="secondary">Ganti Password</x-ui.button>
+                </a>
+
+                @if ($user->teacher_id)
+                    <a href="{{ route('teachers.show', $user->teacher_id) }}">
+                        <x-ui.button>Profil Saya</x-ui.button>
+                    </a>
+                @endif
+            </div>
         </div>
     </x-slot>
 
@@ -63,71 +81,72 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-ui.flash />
 
-            @if ($isHomeroomMode)
-                {{-- TOP CARDS (HOMEROOM) --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <x-ui.card title="Tahun Ajaran Aktif">
-                        <div class="text-lg font-semibold text-gray-900">{{ $activeName ?? '-' }}</div>
-                    </x-ui.card>
+            {{-- =========================
+                 SHARED TOP CARDS
+                 ========================= --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <x-ui.card title="Status Akun">
+                    <div class="mt-1 flex items-center gap-2">
+                        <x-ui.badge :variant="$accountStatusVariant">{{ $accountStatusText }}</x-ui.badge>
+                        @if (!$user->is_active)
+                            <span class="text-xs text-gray-500">Hubungi admin jika ini tidak sesuai.</span>
+                        @endif
+                    </div>
+                </x-ui.card>
 
+                <x-ui.card title="Login Terakhir">
+                    <div class="text-sm font-semibold text-gray-900 truncate">
+                        {{ $lastLogin ?? 'Belum pernah login' }}
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        {{ $lastLogin ? 'Terakhir masuk sistem.' : 'Akun baru / belum login.' }}
+                    </div>
+                </x-ui.card>
+
+                <x-ui.card title="Wajib Ganti Password">
+                    <div class="mt-1">
+                        <x-ui.badge :variant="$mustChangeVariant">{{ $mustChangeText }}</x-ui.badge>
+                    </div>
+                    @if ($user->must_change_password)
+                        <div class="mt-1 text-xs text-gray-500">Silakan ganti password untuk membuka akses fitur.</div>
+                    @endif
+                </x-ui.card>
+
+                <x-ui.card title="Akun Terhubung">
+                    <div class="text-sm font-semibold text-gray-900 break-words">
+                        {{ $teacher ? 'Terhubung ke data guru' : 'Belum terhubung (teacher_id kosong)' }}
+                    </div>
+                    @if (!$teacher)
+                        <div class="mt-1 text-xs text-gray-500">
+                            Minta admin menghubungkan akun ke data guru agar fitur profil aktif.
+                        </div>
+                    @endif
+                </x-ui.card>
+            </div>
+
+            {{-- =========================
+                 HOMEROOM MODE
+                 ========================= --}}
+            @if ($isHomeroomMode)
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <x-ui.card title="Kelas Diampu">
-                        <div class="text-lg font-semibold text-gray-900">{{ $className ?? '-' }}</div>
+                        <div class="text-lg font-semibold text-gray-900 truncate">{{ $className ?? '-' }}</div>
                         @if (!$className)
                             <div class="mt-1 text-xs text-gray-500">Belum ada penugasan wali kelas.</div>
                         @endif
                     </x-ui.card>
 
                     <x-ui.card title="Jurusan">
-                        <div class="text-base font-semibold text-gray-900">{{ $majorName ?? '-' }}</div>
+                        <div class="text-base font-semibold text-gray-900 truncate">{{ $majorName ?? '-' }}</div>
                     </x-ui.card>
 
-                    <x-ui.card title="Total Siswa (Aktif)">
+                    <x-ui.card title="Total Siswa Aktif">
                         <div class="text-3xl font-bold text-gray-900">{{ $studentCount }}</div>
+                        <div class="mt-1 text-xs text-gray-500">Berdasarkan enrollment TA aktif.</div>
                     </x-ui.card>
-                </div>
 
-                {{-- RINGKASAN + AKSI CEPAT --}}
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2">
-                        <x-ui.card title="Ringkasan Akun" subtitle="Info cepat akun dan wali kelas.">
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div>
-                                    <div class="text-xs text-gray-500">Status Akun</div>
-                                    <div class="mt-1">
-                                        <x-ui.badge :variant="$user->is_active ? 'green' : 'gray'">
-                                            {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
-                                        </x-ui.badge>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div class="text-xs text-gray-500">Login Terakhir</div>
-                                    <div class="mt-1 font-semibold text-gray-900">
-                                        {{ $lastLogin ?? 'Belum pernah login' }}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div class="text-xs text-gray-500">Wajib Ganti Password</div>
-                                    <div class="mt-1">
-                                        <x-ui.badge :variant="$user->must_change_password ? 'amber' : 'green'">
-                                            {{ $user->must_change_password ? 'Ya' : 'Tidak' }}
-                                        </x-ui.badge>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div class="text-xs text-gray-500">Profil Guru</div>
-                                    <div class="mt-1 font-semibold text-gray-900">
-                                        {{ $teacher?->full_name ?? '-' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </x-ui.card>
-                    </div>
-
-                    <x-ui.card title="Aksi Cepat" subtitle="Shortcut untuk wali kelas.">
-                        <div class="grid grid-cols-2 gap-3">
+                    <x-ui.card title="Aksi Cepat">
+                        <div class="grid grid-cols-1 gap-2">
                             @can('viewMyClass')
                                 <a href="{{ route('my-class.index') }}">
                                     <x-ui.button class="w-full">Siswa Kelas Saya</x-ui.button>
@@ -143,20 +162,85 @@
                     </x-ui.card>
                 </div>
 
-                {{-- CHARTS --}}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <x-ui.card title="Ringkasan" subtitle="Info cepat akun dan status wali kelas.">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="min-w-0">
+                                    <div class="text-xs text-gray-500">Nama</div>
+                                    <div class="mt-1 font-semibold text-gray-900 truncate">
+                                        {{ $teacher?->full_name ?? '-' }}</div>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs text-gray-500">NIP</div>
+                                    <div class="mt-1 font-semibold text-gray-900 truncate">{{ $teacher?->nip ?? '-' }}
+                                    </div>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs text-gray-500">Telepon</div>
+                                    <div class="mt-1 font-semibold text-gray-900 truncate">
+                                        {{ $teacher?->phone ?? '-' }}</div>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs text-gray-500">Email</div>
+                                    <div class="mt-1 font-semibold text-gray-900 truncate">
+                                        {{ $teacher?->email ?? '-' }}</div>
+                                </div>
+                            </div>
+
+                            @if ($profileIssues->isNotEmpty() && $teacher)
+                                <div class="mt-5 border border-amber-200 bg-amber-50 rounded-xl p-4">
+                                    <div class="text-sm font-semibold text-amber-900">Perlu dilengkapi</div>
+                                    <ul class="mt-2 text-sm text-amber-900 list-disc list-inside">
+                                        @foreach ($profileIssues as $it)
+                                            <li>{{ $it }}</li>
+                                        @endforeach
+                                    </ul>
+                                    <div class="mt-3">
+                                        <a href="{{ route('teachers.edit', $teacher) }}">
+                                            <x-ui.button size="sm" variant="secondary">Lengkapi
+                                                Profil</x-ui.button>
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+                        </x-ui.card>
+                    </div>
+
+                    <x-ui.card title="Tips" subtitle="Panduan singkat untuk wali kelas.">
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex gap-2">
+                                <span class="mt-0.5 text-gray-400">•</span>
+                                <div>Pastikan data siswa TA aktif sudah ter-enroll dengan benar.</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="mt-0.5 text-gray-400">•</span>
+                                <div>Lengkapi profil guru untuk memudahkan komunikasi dan validasi data.</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="mt-0.5 text-gray-400">•</span>
+                                <div>Gunakan menu “Siswa Kelas Saya” untuk melihat detail siswa kelas yang diampu.</div>
+                            </div>
+                        </div>
+                    </x-ui.card>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <x-ui.card title="Gender Siswa (Kelas Saya)"
                         subtitle="Komposisi gender siswa di kelas yang diampu.">
-                        <canvas id="studentsByGender"></canvas>
+                        <div class="relative">
+                            <canvas id="studentsByGender"></canvas>
+                        </div>
                     </x-ui.card>
 
                     <x-ui.card title="Status Siswa (Kelas Saya)"
                         subtitle="Komposisi status siswa di kelas yang diampu.">
-                        <canvas id="studentsByStatus"></canvas>
+                        <div class="relative">
+                            <canvas id="studentsByStatus"></canvas>
+                        </div>
                     </x-ui.card>
                 </div>
 
-                {{-- RECENT STUDENTS --}}
                 <x-ui.card title="Siswa Terbaru (Kelas Saya)" subtitle="Update terbaru siswa di kelas yang kamu ampu.">
                     <x-ui.table>
                         <x-slot:head>
@@ -170,10 +254,12 @@
 
                         @forelse($recentStudents as $s)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 font-semibold text-gray-900">{{ $s['name'] }}</td>
-                                <td class="px-6 py-4 text-gray-700">{{ $s['nis'] }}</td>
-                                <td class="px-6 py-4 text-gray-700">{{ $s['classroom'] ?? '-' }}</td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-6 py-4 font-semibold text-gray-900">
+                                    <div class="truncate max-w-[260px]">{{ $s['name'] }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $s['nis'] }}</td>
+                                <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $s['classroom'] ?? '-' }}</td>
+                                <td class="px-6 py-4 text-right whitespace-nowrap">
                                     <a class="text-indigo-600 hover:text-indigo-800 font-semibold"
                                         href="{{ $s['url'] }}">
                                         Detail
@@ -197,63 +283,41 @@
                     @endcan
                 </x-ui.card>
             @else
-                {{-- FALLBACK MODE GURU BIASA (aman, tanpa 403) --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <x-ui.card title="Status Akun">
-                        <div class="mt-1">
-                            <x-ui.badge :variant="$user->is_active ? 'green' : 'gray'">
-                                {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
-                            </x-ui.badge>
-                        </div>
-                    </x-ui.card>
-
-                    <x-ui.card title="Login Terakhir">
-                        <div class="text-sm font-semibold text-gray-900">{{ $lastLogin ?? 'Belum pernah login' }}</div>
-                    </x-ui.card>
-
-                    <x-ui.card title="Wajib Ganti Password">
-                        <div class="mt-1">
-                            <x-ui.badge :variant="$user->must_change_password ? 'amber' : 'green'">
-                                {{ $user->must_change_password ? 'Ya' : 'Tidak' }}
-                            </x-ui.badge>
-                        </div>
-                    </x-ui.card>
-
-                    <x-ui.card title="Akun Terhubung">
-                        <div class="text-sm font-semibold text-gray-900">
-                            {{ $teacher ? 'Terhubung ke data guru' : 'Belum terhubung (teacher_id kosong)' }}
-                        </div>
-                        @if (!$teacher)
-                            <div class="mt-1 text-xs text-gray-500">Hubungi admin untuk menghubungkan akun ke data guru.
-                            </div>
-                        @endif
-                    </x-ui.card>
-                </div>
-
+                {{-- =========================
+                 TEACHER MODE (NO HOMEROOM)
+                 ========================= --}}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2">
-                        <x-ui.card title="Profil Saya" subtitle="Ringkasan data guru dan akun.">
+                        <x-ui.card title="Ringkasan Profil" subtitle="Informasi penting tentang akun dan data guru.">
                             @if (!$teacher)
-                                <div class="text-sm text-gray-600">Data guru belum tersedia untuk akun ini.</div>
+                                <div class="text-sm text-gray-600">
+                                    Data guru belum tersedia untuk akun ini.
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        Admin perlu mengisi <span class="font-semibold">teacher_id</span> pada akun
+                                        kamu.
+                                    </div>
+                                </div>
                             @else
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div>
+                                    <div class="min-w-0">
                                         <div class="text-xs text-gray-500">Nama</div>
-                                        <div class="mt-1 font-semibold text-gray-900">{{ $teacher->full_name }}</div>
+                                        <div class="mt-1 font-semibold text-gray-900 truncate">
+                                            {{ $teacher->full_name }}</div>
                                     </div>
-                                    <div>
+                                    <div class="min-w-0">
                                         <div class="text-xs text-gray-500">NIP</div>
-                                        <div class="mt-1 font-semibold text-gray-900">{{ $teacher->nip }}</div>
+                                        <div class="mt-1 font-semibold text-gray-900 truncate">{{ $teacher->nip }}
+                                        </div>
                                     </div>
-                                    <div>
+                                    <div class="min-w-0">
                                         <div class="text-xs text-gray-500">Telepon</div>
-                                        <div class="mt-1 font-semibold text-gray-900">{{ $teacher->phone ?? '-' }}
-                                        </div>
+                                        <div class="mt-1 font-semibold text-gray-900 truncate">
+                                            {{ $teacher->phone ?? '-' }}</div>
                                     </div>
-                                    <div>
+                                    <div class="min-w-0">
                                         <div class="text-xs text-gray-500">Email</div>
-                                        <div class="mt-1 font-semibold text-gray-900">{{ $teacher->email ?? '-' }}
-                                        </div>
+                                        <div class="mt-1 font-semibold text-gray-900 truncate">
+                                            {{ $teacher->email ?? '-' }}</div>
                                     </div>
                                 </div>
 
@@ -265,10 +329,15 @@
                                                 <li>{{ $it }}</li>
                                             @endforeach
                                         </ul>
-                                        <div class="mt-3">
+                                        <div class="mt-3 flex flex-wrap gap-2">
                                             <a href="{{ route('teachers.edit', $teacher) }}">
                                                 <x-ui.button size="sm" variant="secondary">Lengkapi
                                                     Profil</x-ui.button>
+                                            </a>
+
+                                            <a href="{{ route('password.change') }}">
+                                                <x-ui.button size="sm" variant="secondary">Ganti
+                                                    Password</x-ui.button>
                                             </a>
                                         </div>
                                     </div>
@@ -279,13 +348,22 @@
                         </x-ui.card>
                     </div>
 
-                    <x-ui.card title="Aksi Cepat" subtitle="Shortcut yang aman untuk guru.">
+                    <x-ui.card title="Aksi Cepat" subtitle="Shortcut aman untuk guru.">
                         <div class="grid grid-cols-1 gap-3">
+                            <a href="{{ route('password.change') }}">
+                                <x-ui.button variant="secondary" class="w-full">Ganti Password</x-ui.button>
+                            </a>
+
                             @if ($user->teacher_id)
                                 <a href="{{ route('teachers.show', $user->teacher_id) }}">
                                     <x-ui.button class="w-full">Profil Saya</x-ui.button>
                                 </a>
                             @endif
+                        </div>
+
+                        <div class="mt-4 text-xs text-gray-500 leading-relaxed">
+                            Jika kamu nanti ditugaskan sebagai wali kelas pada TA aktif, dashboard ini akan otomatis
+                            menampilkan fitur wali kelas.
                         </div>
                     </x-ui.card>
                 </div>

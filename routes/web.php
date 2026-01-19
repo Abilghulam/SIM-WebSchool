@@ -1,14 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PasswordChangeController;
-
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
-
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\MajorController;
 use App\Http\Controllers\SchoolYearController;
 use App\Http\Controllers\ClassroomController;
@@ -135,6 +133,12 @@ Route::middleware(['auth', 'active'])->group(function () {
 
                 Route::post('/enrollments/bulk-placement', [StudentBulkPlacementController::class, 'store'])
                     ->name('enrollments.bulk-placement.store');
+
+                Route::middleware(['role:admin'])->group(function () {
+                    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+                    Route::get('/activity-logs/{activity}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
+                });
+
         });
 
         /**

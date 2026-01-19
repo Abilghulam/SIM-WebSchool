@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Teacher extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'nip',
@@ -60,6 +61,31 @@ class Teacher extends Model
     public function homeroomAssignments(): HasMany
     {
         return $this->hasMany(HomeroomAssignment::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('domain')
+            ->logOnly([
+                'nip',
+                'full_name',
+                'gender',
+                'birth_place',
+                'birth_date',
+                'phone',
+                'email',
+                'address',
+                'employment_status',
+                'is_active',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function getDescriptionForEvent(string $eventName): string
+    {
+        return "Teacher {$eventName}";
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
