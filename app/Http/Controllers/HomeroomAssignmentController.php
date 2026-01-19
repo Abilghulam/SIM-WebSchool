@@ -91,6 +91,38 @@ class HomeroomAssignmentController extends BaseController
             ]
         );
 
+        $existing = HomeroomAssignment::query()
+            ->where('school_year_id', $activeSchoolYearId)
+            ->where('classroom_id', $data['classroom_id'])
+            ->withTrashed()
+            ->first();
+
+        $oldTeacherId = $existing?->teacher_id;
+
+        $assignment = HomeroomAssignment::query()->updateOrCreate(
+            [
+                'school_year_id' => $activeSchoolYearId,
+                'classroom_id' => $data['classroom_id'],
+            ],
+            [
+                'teacher_id' => $data['teacher_id'],
+            ]
+        );
+
+        activity()
+            ->useLog('domain')
+            ->event('homeroom_assigned')
+            ->causedBy($request->user())
+            ->performedOn($assignment)
+            ->withProperties([
+                'school_year_id' => (int) $activeSchoolYearId,
+                'classroom_id' => (int) $data['classroom_id'],
+                'teacher_id' => (int) $data['teacher_id'],
+                'previous_teacher_id' => $oldTeacherId ? (int) $oldTeacherId : null,
+                'operation' => $existing ? 'reassign' : 'assign',
+            ])
+            ->log('Homeroom assignment saved');
+
         return redirect()->route('homeroom-assignments.index')
             ->with('success', 'Wali kelas berhasil disimpan.');
     }
@@ -98,6 +130,21 @@ class HomeroomAssignmentController extends BaseController
     public function destroy(HomeroomAssignment $homeroomAssignment)
     {
         $this->authorize('delete', $homeroomAssignment);
+
+        $props = [
+            'school_year_id' => (int) $homeroomAssignment->school_year_id,
+            'classroom_id' => (int) $homeroomAssignment->classroom_id,
+            'teacher_id' => (int) $homeroomAssignment->teacher_id,
+        ];
+
+        $homeroomAssignment->delete();
+
+        activity()
+            ->useLog('domain')
+            ->event('homeroom_unassigned')
+            ->causedBy(request()->user())
+            ->withProperties($props)
+            ->log('Homeroom assignment deleted');
 
         $homeroomAssignment->delete();
 

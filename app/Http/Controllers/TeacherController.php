@@ -79,6 +79,7 @@ class TeacherController extends BaseController
         $teacher->load([
             'user',
             'documents.type',
+            'documents.uploadedBy',
             'homeroomAssignments.schoolYear',
             'homeroomAssignments.classroom'
         ]);
@@ -120,27 +121,6 @@ class TeacherController extends BaseController
 
         $teacher->delete();
         return redirect()->route('teachers.index')->with('success', 'Guru berhasil dihapus (soft delete).');
-    }
-
-    public function storeDocument(TeacherDocumentStoreRequest $request, Teacher $teacher)
-    {
-        $this->authorize('uploadDocument', $teacher);
-
-        $file = $request->file('file');
-        $path = $file->store("teachers/{$teacher->id}", 'public');
-
-        TeacherDocument::create([
-            'teacher_id' => $teacher->id,
-            'document_type_id' => $request->integer('document_type_id') ?: null,
-            'title' => $request->string('title') ?: null,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType(),
-            'file_size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
-        ]);
-
-        return back()->with('success', 'Dokumen guru berhasil diupload.');
     }
 
     public function createAccount(Request $request, Teacher $teacher)

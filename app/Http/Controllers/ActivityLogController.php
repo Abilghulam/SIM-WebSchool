@@ -13,7 +13,7 @@ class ActivityLogController extends Controller
         $q = Activity::query()
             ->where('log_name', 'domain')
             ->latest('id')
-            ->with(['causer']);
+            ->with(['causer', 'subject']);
 
         if ($request->filled('event')) {
             $q->where('event', $request->string('event')->toString());
@@ -67,7 +67,7 @@ class ActivityLogController extends Controller
         $attributes = Arr::get($props, 'attributes', []);
 
         return view('activity-logs.show', [
-            'activity' => $activity->load('causer'),
+            'activity' => $activity->load('causer', 'subject'),
             'properties' => $props,
             'old' => is_array($old) ? $old : [],
             'attributes' => is_array($attributes) ? $attributes : [],

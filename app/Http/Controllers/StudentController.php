@@ -158,6 +158,7 @@ class StudentController extends BaseController
             'enrollments.schoolYear',
             'enrollments.classroom.major',
             'documents.type',
+            'documents.uploadedBy',
         ]);
 
         $documentTypes = DocumentType::query()
@@ -245,26 +246,5 @@ class StudentController extends BaseController
 
         $student->delete();
         return redirect()->route('students.index')->with('success', 'Siswa berhasil dihapus (soft delete).');
-    }
-
-    public function storeDocument(StudentDocumentStoreRequest $request, Student $student)
-    {
-        $this->authorize('uploadDocument', $student);
-
-        $file = $request->file('file');
-        $path = $file->store("students/{$student->id}", 'public');
-
-        StudentDocument::create([
-            'student_id' => $student->id,
-            'document_type_id' => $request->integer('document_type_id') ?: null,
-            'title' => $request->string('title') ?: null,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType(),
-            'file_size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
-        ]);
-
-        return back()->with('success', 'Dokumen siswa berhasil diupload.');
     }
 }

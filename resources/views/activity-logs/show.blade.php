@@ -6,12 +6,53 @@
         'created' => 'green',
         'updated' => 'blue',
         'deleted' => 'red',
+
+        'school_year_activated' => 'amber',
         'bulk_placement_executed' => 'amber',
+        'enrollments_promoted' => 'amber',
+
+        'student_document_uploaded', 'teacher_document_uploaded' => 'green',
+        'student_document_deleted', 'teacher_document_deleted' => 'red',
+
         default => 'gray',
     };
 
-    $subjectType = $activity->subject_type ? class_basename((string) $activity->subject_type) : '-';
+    $subjectTypeFull = (string) ($activity->subject_type ?? '');
+    $subjectType = $subjectTypeFull ? class_basename($subjectTypeFull) : '-';
     $subjectId = $activity->subject_id ?? '-';
+
+    $subject = $activity->subject; // butuh ->load('subject')
+
+    $subjectLabel = function () use ($subjectType, $subject) {
+        if (!$subject) {
+            return null;
+        }
+
+        return match ($subjectType) {
+            'Student' => trim(($subject->nis ?? '-') . ' - ' . ($subject->full_name ?? '')),
+            'Teacher' => trim(($subject->nip ?? '-') . ' - ' . ($subject->full_name ?? '')),
+            'SchoolYear' => (string) ($subject->name ?? 'SchoolYear'),
+            'Classroom' => (string) ($subject->name ?? 'Classroom'),
+            'Major' => trim(($subject->code ?? '') . ($subject->code ? ' - ' : '') . ($subject->name ?? 'Major')),
+            'StudentDocument', 'TeacherDocument' => (string) ($subject->file_name ?? ($subject->title ?? 'Dokumen')),
+            default => (string) ($subject->name ?? ($subject->title ?? null)),
+        };
+    };
+
+    $subjectUrl = function () use ($subjectType, $subject) {
+        if (!$subject) {
+            return null;
+        }
+
+        return match ($subjectType) {
+            'Student' => route('students.show', $subject),
+            'Teacher' => route('teachers.show', $subject),
+            'SchoolYear' => route('school-years.show', $subject),
+            'Classroom' => route('classrooms.edit', $subject),
+            'Major' => route('majors.edit', $subject),
+            default => null,
+        };
+    };
 
     // gabungkan keys old & attributes untuk tabel perubahan
     $keys = array_unique(array_merge(array_keys($old ?? []), array_keys($attributes ?? [])));
@@ -28,6 +69,17 @@
         }
         return json_encode($v, JSON_UNESCAPED_UNICODE);
     };
+
+    $truncate = function (?string $s, int $n = 60) {
+        $s = (string) ($s ?? '');
+        if (mb_strlen($s) <= $n) {
+            return $s;
+        }
+        return mb_substr($s, 0, $n) . '…';
+    };
+
+    $subLabel = $subjectLabel();
+    $subUrl = $subjectUrl();
 @endphp
 
 <x-app-layout>
@@ -85,10 +137,18 @@
                     <div>
                         <div class="text-xs text-gray-500">Subject</div>
                         <div class="mt-1 font-semibold text-gray-900">
-                            {{ $subjectType }}
+                            @if ($subLabel && $subUrl)
+                                <a href="{{ $subUrl }}" class="text-navy-500 hover:text-navy-700">
+                                    {{ $subLabel }}
+                                </a>
+                            @elseif($subLabel)
+                                {{ $subLabel }}
+                            @else
+                                {{ $subjectType }}
+                            @endif
                         </div>
                         <div class="text-xs text-gray-500 mt-1">
-                            ID: {{ $subjectId }}
+                            {{ $subjectType }} • ID: {{ $subjectId }}
                         </div>
                     </div>
 
@@ -121,15 +181,43 @@
                         </x-slot:head>
 
                         @foreach ($keys as $k)
+                            @php
+                                $oldVal = $fmt($old[$k] ?? null);
+                                $newVal = $fmt($attributes[$k] ?? null);
+
+                                $oldShort = $truncate($oldVal, 70);
+                                $newShort = $truncate($newVal, 70);
+
+                                $isChanged = $oldVal !== $newVal;
+                            @endphp
+
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
                                     {{ $k }}
                                 </td>
+
                                 <td class="px-6 py-4 text-gray-700">
-                                    <code class="text-xs">{{ $fmt($old[$k] ?? null) }}</code>
+                                    <code class="text-xs">{{ $oldShort }}</code>
+                                    @if ($oldShort !== $oldVal)
+                                        <div class="mt-2 text-xs text-gray-500 break-all">
+                                            {{ $oldVal }}
+                                        </div>
+                                    @endif
                                 </td>
+
                                 <td class="px-6 py-4 text-gray-700">
-                                    <code class="text-xs">{{ $fmt($attributes[$k] ?? null) }}</code>
+                                    @if ($isChanged)
+                                        <div class="inline-flex mb-2">
+                                            <x-ui.badge variant="blue">changed</x-ui.badge>
+                                        </div>
+                                    @endif
+
+                                    <code class="text-xs">{{ $newShort }}</code>
+                                    @if ($newShort !== $newVal)
+                                        <div class="mt-2 text-xs text-gray-500 break-all">
+                                            {{ $newVal }}
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

@@ -2,23 +2,69 @@
 @php
     $user = auth()->user();
 
-    // Badge variant untuk event (boleh kamu ubah mapping-nya)
+    // Badge variant untuk event
     $eventBadge = function (?string $ev) {
         return match ($ev) {
             'created' => 'green',
             'updated' => 'blue',
             'deleted' => 'red',
+            // event custom (contoh)
+            'school_year_activated' => 'amber',
             'bulk_placement_executed' => 'amber',
+            'enrollments_promoted' => 'amber',
+
+            'student_document_uploaded', 'teacher_document_uploaded' => 'green',
+            'student_document_deleted', 'teacher_document_deleted' => 'red',
+
             default => 'gray',
         };
     };
 
     // helper: ringkas subject type
     $subjectShort = function ($type) {
-        if (!$type) {
-            return '-';
+        return $type ? class_basename((string) $type) : '-';
+    };
+
+    // label subject yang "manusiawi"
+    $subjectLabel = function ($a) use ($subjectShort) {
+        $type = (string) ($a->subject_type ?? '');
+        $s = $a->subject; // butuh ->with('subject')
+
+        if (!$s) {
+            $short = $subjectShort($type);
+            $id = $a->subject_id ?? '-';
+            return "{$short} #{$id}";
         }
-        return class_basename((string) $type);
+
+        return match (class_basename($type)) {
+            'Student' => trim(($s->nis ?? '-') . ' - ' . ($s->full_name ?? '')),
+            'Teacher' => trim(($s->nip ?? '-') . ' - ' . ($s->full_name ?? '')),
+            'SchoolYear' => (string) ($s->name ?? 'SchoolYear'),
+            'Classroom' => (string) ($s->name ?? 'Classroom'),
+            'Major' => trim(($s->code ?? '') . ($s->code ? ' - ' : '') . ($s->name ?? 'Major')),
+            'HomeroomAssignment' => 'Homeroom Assignment',
+            'StudentDocument', 'TeacherDocument' => (string) ($s->file_name ?? ($s->title ?? 'Dokumen')),
+            default => (string) ($s->name ?? ($s->title ?? $subjectShort($type) . ' #' . ($a->subject_id ?? '-'))),
+        };
+    };
+
+    // optional: link subject ke halaman detail (kalau route ada)
+    $subjectUrl = function ($a) {
+        $type = (string) ($a->subject_type ?? '');
+        $s = $a->subject;
+
+        if (!$s) {
+            return null;
+        }
+
+        return match (class_basename($type)) {
+            'Student' => route('students.show', $s),
+            'Teacher' => route('teachers.show', $s),
+            'SchoolYear' => route('school-years.show', $s),
+            'Classroom' => route('classrooms.edit', $s), // kamu belum punya show, jadi arahkan ke edit
+            'Major' => route('majors.edit', $s), // sama, arahkan ke edit
+            default => null,
+        };
     };
 @endphp
 
@@ -116,8 +162,9 @@
                             $ev = $a->event ?? '-';
                             $variant = $eventBadge($a->event);
                             $causerName = $a->causer?->name ?? '-';
-                            $subjectType = $subjectShort($a->subject_type);
-                            $subjectId = $a->subject_id ?? '-';
+
+                            $subLabel = $subjectLabel($a);
+                            $subUrl = $subjectUrl($a);
                         @endphp
 
                         <tr class="hover:bg-gray-50">
@@ -139,8 +186,18 @@
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">
-                                <div class="font-semibold text-gray-900">{{ $subjectType }}</div>
-                                <div class="text-xs text-gray-500 mt-1">ID: {{ $subjectId }}</div>
+                                <div class="font-semibold text-gray-900">
+                                    @if ($subUrl)
+                                        <a href="{{ $subUrl }}" class="text-navy-500 hover:text-navy-700">
+                                            {{ $subLabel }}
+                                        </a>
+                                    @else
+                                        {{ $subLabel }}
+                                    @endif
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    {{ $subjectShort($a->subject_type) }} • ID: {{ $a->subject_id ?? '-' }}
+                                </div>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">

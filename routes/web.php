@@ -18,6 +18,8 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentImportController;
 use \App\Http\Controllers\StudentBulkPlacementController;
+use App\Http\Controllers\StudentDocumentController;
+use App\Http\Controllers\TeacherDocumentController;
 
 Route::view('/', 'welcome');
 
@@ -67,8 +69,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::resource('students', StudentController::class)
                 ->only(['create','store','edit','update','destroy']);
 
-            Route::post('students/{student}/documents', [StudentController::class, 'storeDocument'])
+            Route::post('students/{student}/documents', [StudentDocumentController::class, 'store'])
                 ->name('students.documents.store');
+
+            Route::delete('students/{student}/documents/{document}', [StudentDocumentController::class, 'destroy'])
+                ->name('students.documents.destroy');
 
             // Teachers (create/store/destroy + createAccount)
             Route::resource('teachers', TeacherController::class)
@@ -147,8 +152,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::resource('students', StudentController::class)->only(['index','show']);
         Route::resource('teachers', TeacherController::class)->only(['index','show','edit','update']);
 
-        Route::post('teachers/{teacher}/documents', [TeacherController::class, 'storeDocument'])
+        Route::post('teachers/{teacher}/documents', [TeacherDocumentController::class, 'store'])
             ->name('teachers.documents.store');
+
+        Route::delete('teachers/{teacher}/documents/{document}', [TeacherDocumentController::class, 'destroy'])
+            ->name('teachers.documents.destroy');
 
         // Wali kelas page (wajib lewat Gate)
         Route::get('/my-class', [MyStudentController::class, 'index'])

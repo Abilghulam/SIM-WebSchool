@@ -231,21 +231,18 @@
             </x-ui.card>
 
             {{-- Dokumen --}}
-            <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk siswa.">
-                @if ($isAdminOrOperator)
-                    <div class="flex justify-end mb-4">
-                        <a href="#dokumen-upload">
-                            <x-ui.button variant="primary">+ Upload Dokumen</x-ui.button>
-                        </a>
-                    </div>
-                @endif
-                {{-- Actions slot di Card kita pakai cara aman: kalau kamu belum punya partial, ganti bagian actions di bawah (lihat catatan) --}}
+            @php
+                $canManageDocs = $isAdminOrOperator;
+            @endphp
 
+            <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk siswa.">
                 <x-ui.table>
                     <x-slot:head>
                         <tr>
                             <th class="px-6 py-4 text-left font-semibold">Jenis</th>
-                            <th class="px-6 py-4 text-left font-semibold">Nama File</th>
+                            <th class="px-6 py-4 text-left font-semibold">Judul / File</th>
+                            <th class="px-6 py-4 text-left font-semibold">Uploader</th>
+                            <th class="px-6 py-4 text-left font-semibold">Waktu</th>
                             <th class="px-6 py-4 text-left font-semibold">Ukuran</th>
                             <th class="px-6 py-4 text-right font-semibold">Aksi</th>
                         </tr>
@@ -253,37 +250,74 @@
 
                     @forelse($student->documents as $doc)
                         @php
-                            $docType = $doc->type?->name ?? ($doc->title ?? 'Dokumen');
+                            $docType = $doc->type?->name ?? '-';
+                            $titleOrName = $doc->title ?: $doc->file_name ?? basename($doc->file_path);
                             $sizeKb = $doc->file_size ? number_format($doc->file_size / 1024, 0) . ' KB' : '-';
+                            $uploadedAt = $doc->created_at ? $doc->created_at->format('d-m-Y H:i') : '-';
+                            $uploaderName = $doc->uploadedBy?->name ?? '-';
+                            $fileUrl = $doc->file_path ? asset('storage/' . $doc->file_path) : null;
                         @endphp
 
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 text-gray-700">
-                                {{ $docType }}
+                                <x-ui.badge variant="gray">{{ $docType }}</x-ui.badge>
                             </td>
+
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-gray-900">{{ $titleOrName }}</div>
+                                @if ($doc->file_name && $doc->title)
+                                    <div class="text-xs text-gray-500 mt-1">{{ $doc->file_name }}</div>
+                                @endif
+                                <div class="text-xs text-gray-500 mt-1">{{ $doc->mime_type ?? '-' }}</div>
+                            </td>
+
                             <td class="px-6 py-4 text-gray-700">
-                                {{ $doc->file_name ?? basename($doc->file_path) }}
+                                {{ $uploaderName }}
                             </td>
+
+                            <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
+                                {{ $uploadedAt }}
+                            </td>
+
                             <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
                                 {{ $sizeKb }}
                             </td>
+
                             <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    Lihat
-                                </a>
+                                @if ($fileUrl)
+                                    <a href="{{ $fileUrl }}" target="_blank"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Lihat
+                                    </a>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+
+                                @if ($canManageDocs)
+                                    <span class="text-gray-300 mx-2">|</span>
+                                    <form method="POST"
+                                        action="{{ route('students.documents.destroy', [$student, $doc]) }}"
+                                        class="inline"
+                                        onsubmit="return confirm('Hapus dokumen ini? File akan ikut terhapus.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-800 font-semibold">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
                                 Belum ada dokumen.
                             </td>
                         </tr>
                     @endforelse
                 </x-ui.table>
 
-                @if ($isAdminOrOperator)
+                @if ($canManageDocs)
                     <div id="dokumen-upload" class="mt-6 border border-gray-200 rounded-xl bg-gray-50 p-6">
                         <div class="flex items-start justify-between gap-4">
                             <div>
@@ -297,30 +331,23 @@
                             @csrf
 
                             <div class="md:col-span-4">
-                                <label class="block text-sm font-medium text-gray-700">Jenis Dokumen (opsional)</label>
-                                <select name="document_type_id"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <x-ui.select label="Jenis Dokumen (opsional)" name="document_type_id">
                                     <option value="">- Pilih -</option>
                                     @foreach ($documentTypes ?? [] as $dt)
                                         <option value="{{ $dt->id }}">{{ $dt->name }}</option>
                                     @endforeach
-                                </select>
+                                </x-ui.select>
                             </div>
 
                             <div class="md:col-span-4">
-                                <label class="block text-sm font-medium text-gray-700">Judul (opsional)</label>
-                                <input type="text" name="title"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                                    placeholder="Contoh: Foto 3x4" />
+                                <x-ui.input label="Judul (opsional)" name="title" placeholder="Contoh: Foto 3x4" />
                             </div>
 
                             <div class="md:col-span-4">
-                                <label class="block text-sm font-medium text-gray-700">File</label>
-                                <input type="file" name="file" class="mt-1 block w-full text-sm text-gray-700"
-                                    required />
-                                @error('file')
-                                    <div class="text-sm text-red-600 mt-1">{{ $message }}</div>
-                                @enderror
+                                <x-ui.field label="File" :error="$errors->first('file')">
+                                    <input type="file" name="file" class="block w-full text-sm text-gray-700"
+                                        required />
+                                </x-ui.field>
                             </div>
 
                             <div class="md:col-span-12 flex items-center gap-2 pt-1">
@@ -330,7 +357,6 @@
                     </div>
                 @endif
             </x-ui.card>
-
         </div>
     </div>
 </x-app-layout>

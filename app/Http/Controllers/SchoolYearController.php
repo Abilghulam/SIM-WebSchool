@@ -169,33 +169,38 @@ class SchoolYearController extends BaseController
 
     public function activate(SchoolYear $schoolYear)
     {
-        // NOTE: kamu pakai route PATCH school-years/{schoolYear}/activate
-        // dan di index kamu submit form dari sana.
         $this->authorize('update', $schoolYear);
 
         if ($schoolYear->is_locked) {
             return back()->with('warning', 'Tahun ajaran ini sudah dikunci dan tidak bisa diaktifkan.');
         }
 
-        DB::transaction(function () use ($schoolYear) {
-            // 1) nonaktifkan semua
-            SchoolYear::query()->where('is_active', 1)->update(['is_active' => 0]);
+        $oldActiveId = SchoolYear::query()->where('is_active', 1)->value('id');
 
-            // 2) aktifkan yang dipilih
+        DB::transaction(function () use ($schoolYear) {
+            SchoolYear::query()->where('is_active', 1)->update(['is_active' => 0]);
             $schoolYear->update(['is_active' => 1]);
 
-            // 3) OPTIONAL: matikan enrollment aktif TA lain agar "current active TA" bersih
-            // Ini sesuai konsep kamu: saat ganti TA aktif, halaman wali kelas / siswa kelas saya berubah.
             StudentEnrollment::query()
                 ->where('school_year_id', '!=', $schoolYear->id)
                 ->where('is_active', 1)
                 ->update(['is_active' => 0]);
         });
 
-        // IMPORTANT: di sini kita tidak auto promote.
-        // Promote dilakukan via /enrollments/promote supaya mapping jelas dan aman.
+        activity()
+        ->useLog('domain')
+        ->event('school_year_activated')
+        ->causedBy(auth()->user())
+        ->performedOn($schoolYear)
+        ->withProperties([
+            'school_year_id' => $schoolYear->id,
+            'name' => $schoolYear->name,
+        ])
+        ->log("School year activated");
+
         return redirect()
             ->route('school-years.index')
             ->with('success', "Tahun ajaran {$schoolYear->name} berhasil diaktifkan. Silakan jalankan Promote untuk membuat enrollment TA ini.");
     }
+
 }
