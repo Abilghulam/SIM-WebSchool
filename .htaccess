@@ -5,6 +5,22 @@
 
     RewriteEngine On
 
+    # =========================
+    # FIX VITE BUILD PATH
+    # /build/*  ->  /public/build/*
+    # =========================
+    RewriteRule ^build/(.*)$ public/build/$1 [L,NC]
+
+    # =========================
+    # FIX STORAGE PATH
+    # /storage/*  ->  /public/storage/*
+    # =========================
+    RewriteRule ^storage/(.*)$ public/storage/$1 [L,NC]
+    
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L,NC]
+    
+    RewriteRule ^favicon\.ico$ public/favicon.ico [L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -13,24 +29,13 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # Redirect trailing slash
+    # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Bypass if file/dir exists at root
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-
-    # Static assets -> public/
-    RewriteRule ^build/(.*)$ public/build/$1 [L,NC]
-    RewriteRule ^storage/(.*)$ public/storage/$1 [L,NC]
-    RewriteRule ^assets/(.*)$ public/assets/$1 [L,NC]
-    RewriteRule ^favicon\.ico$ public/favicon.ico [L,NC]
-
-    # Laravel front controller
+    # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ public/index.php [L]
+    RewriteRule ^ index.php [L]
 </IfModule>
