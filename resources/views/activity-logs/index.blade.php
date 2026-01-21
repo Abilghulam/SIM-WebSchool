@@ -1,70 +1,8 @@
-{{-- resources/views/activity-logs/index.blade.php --}}
 @php
-    $user = auth()->user();
+    use App\Support\ActivityUiFormatter;
 
-    // Badge variant untuk event
-    $eventBadge = function (?string $ev) {
-        return match ($ev) {
-            'created' => 'green',
-            'updated' => 'blue',
-            'deleted' => 'red',
-            // event custom (contoh)
-            'school_year_activated' => 'amber',
-            'bulk_placement_executed' => 'amber',
-            'enrollments_promoted' => 'amber',
-
-            'student_document_uploaded', 'teacher_document_uploaded' => 'green',
-            'student_document_deleted', 'teacher_document_deleted' => 'red',
-
-            default => 'gray',
-        };
-    };
-
-    // helper: ringkas subject type
     $subjectShort = function ($type) {
         return $type ? class_basename((string) $type) : '-';
-    };
-
-    // label subject yang "manusiawi"
-    $subjectLabel = function ($a) use ($subjectShort) {
-        $type = (string) ($a->subject_type ?? '');
-        $s = $a->subject; // butuh ->with('subject')
-
-        if (!$s) {
-            $short = $subjectShort($type);
-            $id = $a->subject_id ?? '-';
-            return "{$short} #{$id}";
-        }
-
-        return match (class_basename($type)) {
-            'Student' => trim(($s->nis ?? '-') . ' - ' . ($s->full_name ?? '')),
-            'Teacher' => trim(($s->nip ?? '-') . ' - ' . ($s->full_name ?? '')),
-            'SchoolYear' => (string) ($s->name ?? 'SchoolYear'),
-            'Classroom' => (string) ($s->name ?? 'Classroom'),
-            'Major' => trim(($s->code ?? '') . ($s->code ? ' - ' : '') . ($s->name ?? 'Major')),
-            'HomeroomAssignment' => 'Homeroom Assignment',
-            'StudentDocument', 'TeacherDocument' => (string) ($s->file_name ?? ($s->title ?? 'Dokumen')),
-            default => (string) ($s->name ?? ($s->title ?? $subjectShort($type) . ' #' . ($a->subject_id ?? '-'))),
-        };
-    };
-
-    // optional: link subject ke halaman detail (kalau route ada)
-    $subjectUrl = function ($a) {
-        $type = (string) ($a->subject_type ?? '');
-        $s = $a->subject;
-
-        if (!$s) {
-            return null;
-        }
-
-        return match (class_basename($type)) {
-            'Student' => route('students.show', $s),
-            'Teacher' => route('teachers.show', $s),
-            'SchoolYear' => route('school-years.show', $s),
-            'Classroom' => route('classrooms.edit', $s), // kamu belum punya show, jadi arahkan ke edit
-            'Major' => route('majors.edit', $s), // sama, arahkan ke edit
-            default => null,
-        };
     };
 @endphp
 
@@ -72,14 +10,11 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">
-                    Activity Log
-                </h2>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Activity Log</h2>
                 <p class="text-sm text-gray-500 mt-1">
                     Audit trail aktivitas penting sistem (domain). Hanya admin yang dapat mengakses.
                 </p>
             </div>
-
             <div class="flex items-center gap-2">
                 <a href="{{ route('activity-logs.index') }}">
                     <x-ui.button variant="secondary">Reset</x-ui.button>
@@ -91,10 +26,8 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Flash --}}
             @include('components.ui.flash')
 
-            {{-- Filter --}}
             <x-ui.card title="Filter" subtitle="Saring log berdasarkan event, subject, dan rentang tanggal.">
                 <form method="GET" action="{{ route('activity-logs.index') }}"
                     class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -104,10 +37,11 @@
                             <option value="">Semua</option>
                             @foreach ($events ?? [] as $ev)
                                 <option value="{{ $ev }}" @selected(request('event') === $ev)>
-                                    {{ $ev }}
+                                    {{ ActivityUiFormatter::eventMeta($ev)['label'] }}
                                 </option>
                             @endforeach
                         </x-ui.select>
+                        <div class="text-xs text-gray-500 mt-1">Catatan: filter ini berdasarkan event key.</div>
                     </div>
 
                     <div class="md:col-span-4">
@@ -131,7 +65,6 @@
 
                     <div class="md:col-span-12 flex items-center gap-2 pt-1">
                         <x-ui.button variant="primary" type="submit">Terapkan</x-ui.button>
-
                         <a href="{{ route('activity-logs.index') }}">
                             <x-ui.button variant="secondary">Reset</x-ui.button>
                         </a>
@@ -143,8 +76,7 @@
                 </form>
             </x-ui.card>
 
-            {{-- Table --}}
-            <x-ui.card title="Daftar Activity" subtitle="Klik Detail untuk melihat perubahan/properties.">
+            <x-ui.card title="Daftar Activity" subtitle="Klik Detail untuk melihat properties/perubahan.">
                 <x-ui.table>
                     <x-slot:head>
                         <tr>
@@ -152,19 +84,21 @@
                             <th class="px-6 py-4 text-left font-semibold">Pelaku</th>
                             <th class="px-6 py-4 text-left font-semibold">Event</th>
                             <th class="px-6 py-4 text-left font-semibold">Subject</th>
-                            <th class="px-6 py-4 text-left font-semibold">Deskripsi</th>
+                            <th class="px-6 py-4 text-left font-semibold">Keterangan</th>
                             <th class="px-6 py-4 text-right font-semibold">Aksi</th>
                         </tr>
                     </x-slot:head>
 
                     @forelse ($activities as $a)
                         @php
-                            $ev = $a->event ?? '-';
-                            $variant = $eventBadge($a->event);
-                            $causerName = $a->causer?->name ?? '-';
+                            $meta = ActivityUiFormatter::eventMeta($a->event);
+                            $causerName = $a->causer?->name ?? 'Sistem';
 
-                            $subLabel = $subjectLabel($a);
-                            $subUrl = $subjectUrl($a);
+                            $subType = $subjectShort($a->subject_type);
+                            $subLabel = ActivityUiFormatter::subjectLabel($a);
+                            $subUrl = ActivityUiFormatter::subjectUrl($a);
+
+                            $sentence = ActivityUiFormatter::auditSentence($a);
                         @endphp
 
                         <tr class="hover:bg-gray-50">
@@ -180,30 +114,29 @@
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <x-ui.badge :variant="$variant">
-                                    {{ $ev }}
-                                </x-ui.badge>
+                                <x-ui.badge :variant="$meta['variant']">{{ $meta['label'] }}</x-ui.badge>
+                                <div class="text-xs text-gray-500 mt-1">{{ $a->event }}</div>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">
                                 <div class="font-semibold text-gray-900">
-                                    @if ($subUrl)
+                                    @if ($subLabel && $subUrl)
                                         <a href="{{ $subUrl }}" class="text-navy-500 hover:text-navy-700">
                                             {{ $subLabel }}
                                         </a>
-                                    @else
+                                    @elseif ($subLabel)
                                         {{ $subLabel }}
+                                    @else
+                                        {{ $subType }}
                                     @endif
                                 </div>
                                 <div class="text-xs text-gray-500 mt-1">
-                                    {{ $subjectShort($a->subject_type) }} • ID: {{ $a->subject_id ?? '-' }}
+                                    {{ $subType }} • ID: {{ $a->subject_id ?? '-' }}
                                 </div>
                             </td>
 
                             <td class="px-6 py-4 text-gray-700">
-                                <div class="line-clamp-2">
-                                    {{ $a->description ?? '-' }}
-                                </div>
+                                <div class="line-clamp-2">{{ $sentence }}</div>
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-right">

@@ -127,7 +127,6 @@ class TeacherController extends BaseController
     {
         $this->authorize('createAccount', $teacher);
 
-        // pastikan belum ada akun
         if (User::query()->where('teacher_id', $teacher->id)->exists()) {
             return back()->with('warning', 'Akun untuk guru ini sudah ada.');
         }
@@ -138,35 +137,48 @@ class TeacherController extends BaseController
         ]);
 
         $username = trim((string) $teacher->nip);
-
         if ($username === '') {
             return back()->with('warning', 'NIP guru kosong. Tidak bisa membuat akun.');
         }
 
-        // username unik
         if (User::query()->where('username', $username)->exists()) {
             return back()->with('warning', "Username {$username} sudah dipakai akun lain.");
         }
 
-        // email fallback kalau kosong (wajib karena kolom users.email NOT NULL)
         $email = $data['email'] ?? ($username . '@school.local');
-
-        // kalau email fallback ternyata sudah dipakai (misalnya ada akun lama),
-        // bikin versi unik: nip+ID@school.local
         if (User::query()->where('email', $email)->exists()) {
             $email = $username . '+' . $teacher->id . '@school.local';
         }
 
-        User::create([
+        $account = User::create([
             'name' => $teacher->full_name,
             'username' => $username,
             'email' => $email,
-            'password' => Hash::make($username), // password awal = NIP
+            'password' => Hash::make($username),
             'role_label' => 'guru',
             'teacher_id' => $teacher->id,
             'is_active' => $data['is_active'] ?? true,
             'must_change_password' => true,
         ]);
+
+        activity()
+            ->useLog('domain')
+            ->event('teacher_account_created')
+            ->causedBy($request->user())
+            ->performedOn($teacher)
+            ->withProperties([
+                'teacher_id' => (int) $teacher->id,
+                'teacher_nip' => (string) ($teacher->nip ?? ''),
+                'teacher_name' => (string) ($teacher->full_name ?? ''),
+
+                'user_id' => (int) $account->id,
+                'username' => (string) ($account->username ?? ''),
+                'email' => (string) ($account->email ?? ''),
+                'role_label' => (string) ($account->role_label ?? ''),
+                'is_active' => (bool) $account->is_active,
+                'must_change_password' => (bool) $account->must_change_password,
+            ])
+            ->log('Teacher account created');
 
         return back()->with(
             'success',
@@ -174,12 +186,8 @@ class TeacherController extends BaseController
         );
     }
 
-    /**
-     * ✅ Toggle aktif/nonaktif akun guru (admin/operator)
-     */
     public function toggleAccountActive(Request $request, Teacher $teacher)
     {
-        // Paling aman pakai policy. Kalau belum ada ability-nya, sementara bisa pakai createAccount.
         $this->authorize('createAccount', $teacher);
 
         $account = $teacher->user;
@@ -187,14 +195,34 @@ class TeacherController extends BaseController
             return back()->with('warning', 'Guru ini belum memiliki akun login.');
         }
 
-        // Hindari admin/operator menonaktifkan dirinya sendiri tanpa sengaja
         if ((int) $account->id === (int) auth()->id()) {
             return back()->with('warning', 'Tidak bisa menonaktifkan akun yang sedang digunakan.');
         }
 
+        $old = (bool) $account->is_active;
+
         $account->update([
             'is_active' => !$account->is_active,
         ]);
+
+        activity()
+            ->useLog('domain')
+            ->event('teacher_account_toggled')
+            ->causedBy($request->user())
+            ->performedOn($teacher)
+            ->withProperties([
+                'teacher_id' => (int) $teacher->id,
+                'teacher_nip' => (string) ($teacher->nip ?? ''),
+                'teacher_name' => (string) ($teacher->full_name ?? ''),
+
+                'user_id' => (int) $account->id,
+                'username' => (string) ($account->username ?? ''),
+                'email' => (string) ($account->email ?? ''),
+
+                'old_is_active' => $old,
+                'new_is_active' => (bool) $account->is_active,
+            ])
+            ->log('Teacher account toggled');
 
         return back()->with(
             'success',
@@ -202,9 +230,6 @@ class TeacherController extends BaseController
         );
     }
 
-    /**
-     * ✅ Paksa must_change_password = 1 (admin/operator)
-     */
     public function forceChangePassword(Request $request, Teacher $teacher)
     {
         $this->authorize('createAccount', $teacher);
@@ -214,18 +239,34 @@ class TeacherController extends BaseController
             return back()->with('warning', 'Guru ini belum memiliki akun login.');
         }
 
+        $old = (bool) $account->must_change_password;
+
         $account->update([
             'must_change_password' => true,
         ]);
 
+        activity()
+            ->useLog('domain')
+            ->event('teacher_account_force_change_password')
+            ->causedBy($request->user())
+            ->performedOn($teacher)
+            ->withProperties([
+                'teacher_id' => (int) $teacher->id,
+                'teacher_nip' => (string) ($teacher->nip ?? ''),
+                'teacher_name' => (string) ($teacher->full_name ?? ''),
+
+                'user_id' => (int) $account->id,
+                'username' => (string) ($account->username ?? ''),
+                'email' => (string) ($account->email ?? ''),
+
+                'old_must_change_password' => $old,
+                'new_must_change_password' => (bool) $account->must_change_password,
+            ])
+            ->log('Teacher account force change password');
+
         return back()->with('success', 'Berhasil: guru akan diminta ganti password saat login berikutnya.');
     }
 
-    /**
-     * ✅ Reset password manual (admin/operator)
-     * - set password baru
-     * - set must_change_password = 1
-     */
     public function resetAccountPassword(Request $request, Teacher $teacher)
     {
         $this->authorize('createAccount', $teacher);
@@ -239,14 +280,37 @@ class TeacherController extends BaseController
             'new_password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
 
+        $oldMustChange = (bool) $account->must_change_password;
+
         $account->update([
             'password' => Hash::make($data['new_password']),
             'must_change_password' => true,
         ]);
+
+        activity()
+            ->useLog('domain')
+            ->event('teacher_account_password_reset')
+            ->causedBy($request->user())
+            ->performedOn($teacher)
+            ->withProperties([
+                'teacher_id' => (int) $teacher->id,
+                'teacher_nip' => (string) ($teacher->nip ?? ''),
+                'teacher_name' => (string) ($teacher->full_name ?? ''),
+
+                'user_id' => (int) $account->id,
+                'username' => (string) ($account->username ?? ''),
+                'email' => (string) ($account->email ?? ''),
+
+                'old_must_change_password' => $oldMustChange,
+                'new_must_change_password' => (bool) $account->must_change_password,
+                'password_reset' => true,
+            ])
+            ->log('Teacher account password reset');
 
         return back()->with(
             'success',
             'Password berhasil direset. Guru wajib mengganti password saat login berikutnya.'
         );
     }
+
 }

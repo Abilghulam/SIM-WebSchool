@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Spatie\Activitylog\Models\Activity;
+use App\Support\ActivityUiFormatter;
 
 class ActivityLogController extends Controller
 {
@@ -13,7 +14,7 @@ class ActivityLogController extends Controller
         $q = Activity::query()
             ->where('log_name', 'domain')
             ->latest('id')
-            ->with(['causer', 'subject']);
+            ->with(['causer']); // subject kita hydrate manual agar bisa withTrashed
 
         if ($request->filled('event')) {
             $q->where('event', $request->string('event')->toString());
@@ -38,7 +39,9 @@ class ActivityLogController extends Controller
 
         $activities = $q->paginate(20)->withQueryString();
 
-        // pilihan filter yang praktis (ambil dari DB, aman dan simpel)
+        // ✅ hydrate subject termasuk soft-deleted (tanpa N+1)
+        ActivityUiFormatter::hydrateSubjects($activities->items());
+
         $events = Activity::query()
             ->select('event')
             ->where('log_name', 'domain')
@@ -62,12 +65,17 @@ class ActivityLogController extends Controller
     {
         abort_if($activity->log_name !== 'domain', 404);
 
+        $activity->load('causer');
+
+        // ✅ hydrate subject termasuk soft-deleted
+        ActivityUiFormatter::hydrateSubjects([$activity]);
+
         $props = $activity->properties ? $activity->properties->toArray() : [];
         $old = Arr::get($props, 'old', []);
         $attributes = Arr::get($props, 'attributes', []);
 
         return view('activity-logs.show', [
-            'activity' => $activity->load('causer', 'subject'),
+            'activity' => $activity,
             'properties' => $props,
             'old' => is_array($old) ? $old : [],
             'attributes' => is_array($attributes) ? $attributes : [],
