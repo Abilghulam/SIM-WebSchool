@@ -232,7 +232,7 @@
 
             {{-- Dokumen --}}
             @php
-                $canManageDocs = $isAdminOrOperator;
+                $canManageDocs = $user->can('uploadDocument', $student);
             @endphp
 
             <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk siswa.">
@@ -285,7 +285,7 @@
 
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 @if ($fileUrl)
-                                    <a href="{{ $fileUrl }}" target="_blank"
+                                    <a href="{{ route('students.documents.show', [$student, $doc]) }}" target="_blank"
                                         class="text-indigo-600 hover:text-indigo-800 font-semibold">
                                         Lihat
                                     </a>
@@ -294,6 +294,12 @@
                                 @endif
 
                                 @if ($canManageDocs)
+                                    <span class="text-gray-300 mx-2">|</span>
+                                    <a href="{{ route('students.documents.edit', [$student, $doc]) }}"
+                                        class="text-amber-600 hover:text-amber-800 font-semibold">
+                                        Edit
+                                    </a>
+
                                     <span class="text-gray-300 mx-2">|</span>
                                     <form method="POST"
                                         action="{{ route('students.documents.destroy', [$student, $doc]) }}"

@@ -407,7 +407,7 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
 
             {{-- Dokumen --}}
             @php
-                $canManageDocs = $isAdminOrOperator;
+                $canManageDocs = $user->can('uploadDocument', $teacher);
             @endphp
 
             <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk guru.">
@@ -460,8 +460,8 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
 
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 @if ($fileUrl)
-                                    <a href="{{ $fileUrl }}" target="_blank"
-                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    <a href="{{ route('teachers.documents.show', [$teacher, $doc]) }}"
+                                        target="_blank" class="text-indigo-600 hover:text-indigo-800 font-semibold">
                                         Lihat
                                     </a>
                                 @else
@@ -469,6 +469,12 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                                 @endif
 
                                 @if ($canManageDocs)
+                                    <span class="text-gray-300 mx-2">|</span>
+                                    <a href="{{ route('teachers.documents.edit', [$teacher, $doc]) }}"
+                                        class="text-amber-600 hover:text-amber-800 font-semibold">
+                                        Edit
+                                    </a>
+
                                     <span class="text-gray-300 mx-2">|</span>
                                     <form method="POST"
                                         action="{{ route('teachers.documents.destroy', [$teacher, $doc]) }}"

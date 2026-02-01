@@ -81,6 +81,30 @@ class StudentPolicy
 
     public function uploadDocument(User $user, Student $student): bool
     {
-        return $user->canManageSchoolData();
+        if ($user->canManageSchoolData() || $user->isPimpinan()) {
+            return true;
+        }
+
+        // wali kelas: boleh kelola dokumen siswa yang ada di kelasnya pada TA aktif
+        if ($user->can('viewMyClass') && $user->teacher_id) {
+            $activeYearId = SchoolYear::activeId();
+            if (!$activeYearId) return false;
+
+            $classroomIds = HomeroomAssignment::query()
+                ->where('school_year_id', $activeYearId)
+                ->where('teacher_id', $user->teacher_id)
+                ->pluck('classroom_id');
+
+            if ($classroomIds->isEmpty()) return false;
+
+            return $student->enrollments()
+                ->where('school_year_id', $activeYearId)
+                ->where('is_active', true)
+                ->whereIn('classroom_id', $classroomIds)
+                ->exists();
+        }
+
+        return false;
     }
+
 }

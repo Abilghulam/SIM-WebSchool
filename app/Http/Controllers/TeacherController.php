@@ -75,7 +75,10 @@ class TeacherController extends BaseController
             'homeroomAssignments.classroom',
         ]);
 
-        $documentTypes = DocumentType::query()->orderBy('name')->get();
+        $documentTypes = DocumentType::query()
+            ->where('for', 'teacher')
+            ->orderBy('name')
+            ->get();
 
         return view('teachers.show', compact('teacher', 'documentTypes'));
     }

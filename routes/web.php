@@ -66,24 +66,17 @@ Route::middleware(['auth', 'active'])->group(function () {
          */
         Route::middleware(['role:admin,operator'])->group(function () {
 
-            // Students (CRUD terbatas)
+            // Students
             Route::resource('students', StudentController::class)
                 ->only(['create','store','edit','update','destroy']);
 
-            Route::post('students/{student}/documents', [StudentDocumentController::class, 'store'])
-                ->name('students.documents.store');
-
-            Route::delete('students/{student}/documents/{document}', [StudentDocumentController::class, 'destroy'])
-                ->name('students.documents.destroy');
-
-            // Teachers (create/store/destroy + createAccount)
+            // Teachers Management
             Route::resource('teachers', TeacherController::class)
                 ->only(['create','store','destroy']);
 
             Route::post('teachers/{teacher}/account', [TeacherController::class, 'createAccount'])
                 ->name('teachers.account.create');
 
-            // Teachers Account Management (admin/operator)
             Route::patch('teachers/{teacher}/account/toggle-active', [TeacherController::class, 'toggleAccountActive'])
                 ->name('teachers.account.toggle-active');
 
@@ -169,11 +162,37 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::resource('students', StudentController::class)->only(['index','show']);
         Route::resource('teachers', TeacherController::class)->only(['index','show','edit','update']);
 
+        // Teachers Documents
         Route::post('teachers/{teacher}/documents', [TeacherDocumentController::class, 'store'])
             ->name('teachers.documents.store');
 
+        Route::get('teachers/{teacher}/documents/{document}', [TeacherDocumentController::class, 'show'])
+            ->name('teachers.documents.show');
+
+        Route::get('teachers/{teacher}/documents/{document}/edit', [TeacherDocumentController::class, 'edit'])
+            ->name('teachers.documents.edit');
+
+        Route::put('teachers/{teacher}/documents/{document}', [TeacherDocumentController::class, 'update'])
+            ->name('teachers.documents.update');
+
         Route::delete('teachers/{teacher}/documents/{document}', [TeacherDocumentController::class, 'destroy'])
             ->name('teachers.documents.destroy');
+
+        // Students Documents
+        Route::post('students/{student}/documents', [StudentDocumentController::class, 'store'])
+            ->name('students.documents.store');
+
+        Route::get('students/{student}/documents/{document}', [StudentDocumentController::class, 'show'])
+            ->name('students.documents.show');
+
+        Route::get('students/{student}/documents/{document}/edit', [StudentDocumentController::class, 'edit'])
+            ->name('students.documents.edit');
+
+        Route::put('students/{student}/documents/{document}', [StudentDocumentController::class, 'update'])
+            ->name('students.documents.update');
+
+        Route::delete('students/{student}/documents/{document}', [StudentDocumentController::class, 'destroy'])
+            ->name('students.documents.destroy');
         
         Route::resource('staff', StaffController::class)->only(['index','show','edit','update']);
 
