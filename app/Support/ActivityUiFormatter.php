@@ -39,6 +39,11 @@ class ActivityUiFormatter
             'teacher_account_toggled' => ['label' => 'Ubah status akun guru', 'variant' => 'amber'],
             'teacher_account_force_change_password' => ['label' => 'Paksa ganti password', 'variant' => 'amber'],
             'teacher_account_password_reset' => ['label' => 'Reset password guru', 'variant' => 'amber'],
+
+            'staff_account_created' => ['label' => 'Buat akun login TAS', 'variant' => 'green'],
+            'staff_account_toggled' => ['label' => 'Ubah status akun TAS', 'variant' => 'amber'],
+            'staff_account_force_change_password' => ['label' => 'Paksa ganti password TAS', 'variant' => 'amber'],
+            'staff_account_password_reset' => ['label' => 'Reset password TAS', 'variant' => 'amber'],
         ];
 
         return $map[$event] ?? [
@@ -60,6 +65,7 @@ class ActivityUiFormatter
         return match ($type) {
             'Student' => trim(($subject->nis ?? '-') . ' - ' . ($subject->full_name ?? '')),
             'Teacher' => trim(($subject->nip ?? '-') . ' - ' . ($subject->full_name ?? '')),
+            'Staff' => trim(($subject->nip ?? '-') . ' - ' . ($subject->full_name ?? '')),
             'SchoolYear' => (string) ($subject->name ?? 'Tahun Ajaran'),
             'Classroom' => (string) ($subject->name ?? 'Kelas'),
             'Major' => trim(($subject->code ?? '') . (($subject->code ?? '') !== '' ? ' - ' : '') . ($subject->name ?? 'Jurusan')),
@@ -85,6 +91,7 @@ class ActivityUiFormatter
         return match ($type) {
             'Student' => route('students.show', $subject),
             'Teacher' => route('teachers.show', $subject),
+            'Staff' => route('staff.show', $subject),
             'SchoolYear' => route('school-years.show', $subject),
             'Classroom' => route('classrooms.edit', $subject),
             'Major' => route('majors.edit', $subject),
@@ -129,6 +136,11 @@ class ActivityUiFormatter
             'teacher_account_toggled' => "{$causer} mengubah status akun guru {$subjectLabel} menjadi " . ($p('new_is_active', false) ? 'Aktif' : 'Nonaktif') . ".",
             'teacher_account_force_change_password' => "{$causer} memaksa guru {$subjectLabel} mengganti password pada login berikutnya.",
             'teacher_account_password_reset' => "{$causer} mereset password akun guru {$subjectLabel} dan mewajibkan ganti password saat login berikutnya.",
+
+            'staff_account_created' => "{$causer} membuat akun login untuk TAS {$subjectLabel}.",
+            'staff_account_toggled' => "{$causer} mengubah status akun TAS {$subjectLabel}.",
+            'staff_account_force_change_password' => "{$causer} memaksa TAS {$subjectLabel} mengganti password pada login berikutnya.",
+            'staff_account_password_reset' => "{$causer} mereset password akun TAS {$subjectLabel}.",
 
             default => ($a->description ?: "{$causer} melakukan aksi {$event} pada {$subjectLabel}."),
         };

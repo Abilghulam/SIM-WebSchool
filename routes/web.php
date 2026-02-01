@@ -20,6 +20,7 @@ use App\Http\Controllers\StudentImportController;
 use \App\Http\Controllers\StudentBulkPlacementController;
 use App\Http\Controllers\StudentDocumentController;
 use App\Http\Controllers\TeacherDocumentController;
+use App\Http\Controllers\StaffController;
 
 Route::view('/', 'welcome');
 
@@ -92,6 +93,22 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::put('teachers/{teacher}/account/reset-password', [TeacherController::class, 'resetAccountPassword'])
                 ->name('teachers.account.reset-password');
 
+            // Staff/TAS (create/store/destroy + account)
+            Route::resource('staff', StaffController::class)
+                ->only(['create','store','destroy']);
+
+            Route::post('staff/{staff}/account', [StaffController::class, 'createAccount'])
+                ->name('staff.account.create');
+
+            Route::patch('staff/{staff}/account/toggle-active', [StaffController::class, 'toggleAccountActive'])
+                ->name('staff.account.toggle-active');
+
+            Route::patch('staff/{staff}/account/force-change-password', [StaffController::class, 'forceChangePassword'])
+                ->name('staff.account.force-change-password');
+
+            Route::put('staff/{staff}/account/reset-password', [StaffController::class, 'resetAccountPassword'])
+                ->name('staff.account.reset-password');
+
             // Master data
             Route::resource('majors', MajorController::class)->except(['show']);
 
@@ -157,6 +174,8 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::delete('teachers/{teacher}/documents/{document}', [TeacherDocumentController::class, 'destroy'])
             ->name('teachers.documents.destroy');
+        
+        Route::resource('staff', StaffController::class)->only(['index','show','edit','update']);
 
         // Wali kelas page (wajib lewat Gate)
         Route::get('/my-class', [MyStudentController::class, 'index'])

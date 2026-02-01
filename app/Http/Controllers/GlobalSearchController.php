@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\SchoolYear;
+use App\Models\Staff;
 use App\Models\HomeroomAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,9 +18,10 @@ class GlobalSearchController extends Controller
 
         if (mb_strlen($q) < 2) {
             return response()->json([
-                'query' => $q,
-                'students' => [],
-                'teachers' => [],
+            'query' => $q,
+            'students' => [],
+            'teachers' => [],
+            'staff' => [],
             ]);
         }
 
@@ -138,10 +140,49 @@ class GlobalSearchController extends Controller
             })
             ->values();
 
+        // =========================
+        // STAFF (TAS)
+        // =========================
+        $staffQ = Staff::query()
+            ->where(function ($w) use ($q) {
+                $w->where('full_name', 'like', "%{$q}%")
+                    ->orWhere('nip', 'like', "%{$q}%");
+            });
+
+        if ($isFullAccess) {
+            // optional: kalau kamu punya scope visibleTo dan ingin konsisten
+            $staffQ->visibleTo($user);
+        } else {
+            // selain full access, hanya boleh dirinya sendiri (kalau staff_id ada)
+            if (!$user->staff_id) {
+                $staffQ->whereRaw('1=0');
+            } else {
+                $staffQ->whereKey($user->staff_id);
+            }
+        }
+
+        $staff = $staffQ
+            ->orderBy('full_name')
+            ->limit(8)
+            ->get()
+            ->map(function ($st) use ($user) {
+                $canView = Gate::forUser($user)->allows('view', $st);
+
+                return [
+                    'type' => 'staff',
+                    'id' => $st->id,
+                    'title' => $st->full_name,
+                    'code' => $st->nip,
+                    'url' => $canView ? route('staff.show', $st) : null,
+                ];
+            })
+            ->values();
+
         return response()->json([
             'query' => $q,
             'students' => $students,
             'teachers' => $teachers,
+            'staff' => $staff,
         ]);
     }
 
@@ -219,6 +260,30 @@ class GlobalSearchController extends Controller
             ->paginate(10, ['*'], 'teachers_page')
             ->withQueryString();
 
-        return view('search.index', compact('q', 'students', 'teachers'));
+        // STAFF
+        $staffQ = Staff::query()
+            ->when($q !== '', function ($qq) use ($q) {
+                $qq->where(function ($w) use ($q) {
+                    $w->where('full_name', 'like', "%{$q}%")
+                        ->orWhere('nip', 'like', "%{$q}%");
+                });
+            });
+
+        if ($isFullAccess) {
+            $staffQ->visibleTo($user);
+        } else {
+            if (!$user->staff_id) {
+                $staffQ->whereRaw('1=0');
+            } else {
+                $staffQ->whereKey($user->staff_id);
+            }
+        }
+
+        $staffs = $staffQ
+            ->orderBy('full_name')
+            ->paginate(10, ['*'], 'staff_page')
+            ->withQueryString();
+
+        return view('search.index', compact('q', 'students', 'teachers', 'staffs'));
     }
 }

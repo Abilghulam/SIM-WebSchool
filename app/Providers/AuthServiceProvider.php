@@ -8,12 +8,14 @@ use App\Models\Major;
 use App\Models\SchoolYear;
 use \App\Models\Classroom;
 use \App\Models\HomeroomAssignment;
+use \App\Models\Staff;
 use App\Policies\StudentPolicy;
 use App\Policies\TeacherPolicy;
 use App\Policies\MajorPolicy;
 use App\Policies\SchoolYearPolicy;
 use \App\Policies\ClassroomPolicy;
 use \App\Policies\HomeroomAssignmentPolicy;
+use \App\Policies\StaffPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -26,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
         SchoolYear::class => SchoolYearPolicy::class,
         Classroom::class => ClassroomPolicy::class,
         HomeroomAssignment::class => HomeroomAssignmentPolicy::class,
+        Staff::class => StaffPolicy::class,
     ];
 
     public function boot(): void

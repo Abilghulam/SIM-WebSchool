@@ -4,6 +4,7 @@
 
     $studentCount = $students?->total() ?? 0;
     $teacherCount = $teachers?->total() ?? 0;
+    $staffCount = $staffs?->total() ?? 0;
 @endphp
 
 <x-app-layout>
@@ -42,7 +43,9 @@
                     <div class="md:col-span-12 text-sm text-gray-500">
                         Menampilkan:
                         <span class="font-semibold text-gray-900">{{ $studentCount }}</span> siswa,
-                        <span class="font-semibold text-gray-900">{{ $teacherCount }}</span> guru
+                        <span class="font-semibold text-gray-900">{{ $teacherCount }}</span> guru,
+                        <span class="font-semibold text-gray-900">{{ $staffCount }}</span> tenaga administrasi
+                        sekolah,
                         @if ($q)
                             untuk kata kunci: <span class="font-semibold text-gray-900">"{{ $q }}"</span>
                         @endif
@@ -196,6 +199,70 @@
                     <x-slot:footer>
                         {{-- penting: pagination guru pakai pageName = teachers_page --}}
                         {{ $teachers->appends(['q' => $q])->links() }}
+                    </x-slot:footer>
+                </x-ui.table>
+            </x-ui.card>
+
+            {{-- STAFF/TAS --}}
+            <x-ui.card title="Tenaga Administrasi Sekolah"
+                subtitle="Hasil Tenaga Administrasi Sekolah yang sesuai dengan pencarian.">
+                <x-ui.table>
+                    <x-slot:head>
+                        <tr>
+                            <th class="px-6 py-4 text-left font-semibold">NIP</th>
+                            <th class="px-6 py-4 text-left font-semibold">Nama</th>
+                            <th class="px-6 py-4 text-left font-semibold">Kontak</th>
+                            <th class="px-6 py-4 text-left font-semibold">Status</th>
+                            <th class="px-6 py-4 text-right font-semibold">Aksi</th>
+                        </tr>
+                    </x-slot:head>
+
+                    @forelse($staffs as $st)
+                        @php
+                            $badgeVariant = $st->is_active ? 'green' : 'gray';
+                            $badgeText = $st->is_active ? 'Aktif' : 'Nonaktif';
+                        @endphp
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ $st->nip }}</td>
+
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-gray-900">{{ $st->full_name }}</div>
+                                @if ($st->employment_status)
+                                    <div class="text-xs text-gray-500 mt-1">{{ $st->employment_status }}</div>
+                                @endif
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="text-gray-700">{{ $st->phone ?? '-' }}</div>
+                                <div class="text-xs text-gray-500 mt-1">{{ $st->email ?? '-' }}</div>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <x-ui.badge :variant="$badgeVariant">{{ $badgeText }}</x-ui.badge>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                @can('view', $st)
+                                    <a href="{{ route('staff.show', $st) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                        Detail
+                                    </a>
+                                @else
+                                    <span class="text-gray-400 text-sm">-</span>
+                                @endcan
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                                Tidak ada hasil TAS.
+                            </td>
+                        </tr>
+                    @endforelse
+
+                    <x-slot:footer>
+                        {{ $staffs->appends(['q' => $q])->links() }}
                     </x-slot:footer>
                 </x-ui.table>
             </x-ui.card>

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role_label',
         'teacher_id',
+        'staff_id',
         'is_active',
         'must_change_password',
         'last_login_at',
@@ -102,6 +103,16 @@ class User extends Authenticatable
     public function isGuru(): bool
     {
         return in_array($this->role_label, ['guru'], true);
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(\App\Models\Staff::class, 'staff_id');
+    }
+
+    public function isStaff(): bool
+    {
+        return (bool) $this->staff_id;
     }
 
     // untuk role yang boleh akses global data (bisa kamu tambah sesuai kebutuhan)
