@@ -23,6 +23,11 @@ class Teacher extends Model
         'gender',
         'birth_place',
         'birth_date',
+
+        'religion',
+        'religion_other',
+        'marital_status',
+
         'phone',
         'email',
         'address',
@@ -73,6 +78,9 @@ class Teacher extends Model
                 'gender',
                 'birth_place',
                 'birth_date',
+                'religion',
+                'religion_other',
+                'marital_status',
                 'phone',
                 'email',
                 'address',

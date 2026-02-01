@@ -7,6 +7,15 @@
     $badgeText = $teacher->is_active ? 'Aktif' : 'Nonaktif';
 
     $account = $teacher->user;
+
+    // NEW: Agama + Status Kawin (rapihin display)
+    $religionText = $teacher->religion ?? '-';
+    if (($teacher->religion ?? null) === 'Lainnya') {
+        $religionText = trim((string) ($teacher->religion_other ?? ''));
+        $religionText = $religionText !== '' ? $religionText : 'Lainnya';
+    }
+
+    $maritalText = $teacher->marital_status ?? '-';
 @endphp
 
 <x-app-layout>
@@ -66,7 +75,7 @@
 
             {{-- Ringkasan --}}
             <x-ui.card title="Ringkasan" subtitle="Informasi singkat guru.">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <div>
                         <div class="text-xs text-gray-500">NIP</div>
                         <div class="mt-1 font-semibold text-gray-900">{{ $teacher->nip }}</div>
@@ -75,6 +84,16 @@
                     <div>
                         <div class="text-xs text-gray-500">Status Kepegawaian</div>
                         <div class="mt-1 font-semibold text-gray-900">{{ $teacher->employment_status ?? '-' }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-gray-500">Agama</div>
+                        <div class="mt-1 font-semibold text-gray-900">{{ $religionText }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-gray-500">Status Kawin</div>
+                        <div class="mt-1 font-semibold text-gray-900">{{ $maritalText }}</div>
                     </div>
 
                     <div>
@@ -237,8 +256,7 @@
                         {{-- Template pesan siap copy --}}
                         <div class="mt-6 border-t border-gray-200 pt-4">
                             <h4 class="text-sm font-semibold text-gray-900">Template Pesan untuk Guru</h4>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Copy-paste pesan berikut ke WhatsApp/Chat internal.
+                            <p class="text-xs text-gray-500 mt-1">Copy-paste pesan berikut ke WhatsApp/Chat internal.
                             </p>
 
                             @php
@@ -337,6 +355,18 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                                         , {{ $teacher->birth_date->format('d-m-Y') }}
                                     @endif
                                 </dd>
+                            </div>
+
+                            {{-- NEW --}}
+                            <div>
+                                <dt class="text-xs text-gray-500">Agama</dt>
+                                <dd class="mt-1 text-gray-900">{{ $religionText }}</dd>
+                            </div>
+
+                            {{-- NEW --}}
+                            <div>
+                                <dt class="text-xs text-gray-500">Status Kawin</dt>
+                                <dd class="mt-1 text-gray-900">{{ $maritalText }}</dd>
                             </div>
 
                             <div>

@@ -4,17 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TeacherStoreRequest;
 use App\Http\Requests\TeacherUpdateRequest;
-use App\Http\Requests\TeacherDocumentStoreRequest;
-use App\Models\Teacher;
-use App\Models\TeacherDocument;
-use Illuminate\Http\Request;
 use App\Models\DocumentType;
+use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Routing\Controller as BaseController;
 
 class TeacherController extends BaseController
 {
@@ -24,27 +21,29 @@ class TeacherController extends BaseController
     {
         $this->authorize('viewAny', Teacher::class);
 
-        $q = Teacher::query()->visibleTo(auth()->user());
+        $q = Teacher::query()->visibleTo($request->user());
 
         if ($request->filled('active')) {
             $q->where('is_active', (bool) $request->boolean('active'));
         }
 
         if ($request->filled('search')) {
-            $s = $request->string('search');
+            $s = $request->string('search')->toString();
             $q->where(function ($w) use ($s) {
                 $w->where('full_name', 'like', "%{$s}%")
-                  ->orWhere('nip', 'like', "%{$s}%");
+                    ->orWhere('nip', 'like', "%{$s}%");
             });
         }
 
         $teachers = $q->latest()->paginate(15)->withQueryString();
+
         return view('teachers.index', compact('teachers'));
     }
 
     public function create()
     {
         $this->authorize('create', Teacher::class);
+
         return view('teachers.create');
     }
 
@@ -52,21 +51,13 @@ class TeacherController extends BaseController
     {
         $this->authorize('create', Teacher::class);
 
-        $data = $request->validated();
+        $data = $this->normalizeTeacherPayload($request->validated());
 
         Teacher::create([
-            'nip' => $data['nip'],
-            'full_name' => $data['full_name'],
-            'gender' => $data['gender'] ?? null,
-            'birth_place' => $data['birth_place'] ?? null,
-            'birth_date' => $data['birth_date'] ?? null,
-            'phone' => $data['phone'] ?? null,
-            'email' => $data['email'] ?? null,
-            'address' => $data['address'] ?? null,
-            'employment_status' => $data['employment_status'] ?? null,
+            ...$data,
             'is_active' => $data['is_active'] ?? true,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
         ]);
 
         return redirect()->route('teachers.index')->with('success', 'Guru berhasil ditambahkan.');
@@ -81,7 +72,7 @@ class TeacherController extends BaseController
             'documents.type',
             'documents.uploadedBy',
             'homeroomAssignments.schoolYear',
-            'homeroomAssignments.classroom'
+            'homeroomAssignments.classroom',
         ]);
 
         $documentTypes = DocumentType::query()->orderBy('name')->get();
@@ -92,6 +83,7 @@ class TeacherController extends BaseController
     public function edit(Teacher $teacher)
     {
         $this->authorize('update', $teacher);
+
         return view('teachers.edit', compact('teacher'));
     }
 
@@ -99,17 +91,15 @@ class TeacherController extends BaseController
     {
         $this->authorize('update', $teacher);
 
-        $data = $request->validated();
+        $data = $this->normalizeTeacherPayload($request->validated());
 
         // Guru/WaliKelas hanya boleh update field tertentu (konsep "self-edit")
-        if (auth()->user()->isGuru() || auth()->user()->isWaliKelas()) {
-            $data = collect($data)->only([
-                'phone', 'email', 'address',
-            ])->toArray();
+        if ($request->user()->isGuru() || $request->user()->isWaliKelas()) {
+            $data = collect($data)->only(['phone', 'email', 'address'])->toArray();
         }
 
         $teacher->fill($data);
-        $teacher->updated_by = auth()->id();
+        $teacher->updated_by = $request->user()->id;
         $teacher->save();
 
         return redirect()->route('teachers.show', $teacher)->with('success', 'Data guru berhasil diperbarui.');
@@ -120,6 +110,7 @@ class TeacherController extends BaseController
         $this->authorize('delete', $teacher);
 
         $teacher->delete();
+
         return redirect()->route('teachers.index')->with('success', 'Guru berhasil dihapus (soft delete).');
     }
 
@@ -182,7 +173,7 @@ class TeacherController extends BaseController
 
         return back()->with(
             'success',
-            "Akun login guru berhasil dibuat. Login pakai NIP (username) dan password awal NIP. Wajib ganti password saat login pertama."
+            'Akun login guru berhasil dibuat. Login pakai NIP (username) dan password awal NIP. Wajib ganti password saat login pertama.'
         );
     }
 
@@ -195,15 +186,13 @@ class TeacherController extends BaseController
             return back()->with('warning', 'Guru ini belum memiliki akun login.');
         }
 
-        if ((int) $account->id === (int) auth()->id()) {
+        if ((int) $account->id === (int) $request->user()->id) {
             return back()->with('warning', 'Tidak bisa menonaktifkan akun yang sedang digunakan.');
         }
 
         $old = (bool) $account->is_active;
 
-        $account->update([
-            'is_active' => !$account->is_active,
-        ]);
+        $account->update(['is_active' => !$account->is_active]);
 
         activity()
             ->useLog('domain')
@@ -224,10 +213,7 @@ class TeacherController extends BaseController
             ])
             ->log('Teacher account toggled');
 
-        return back()->with(
-            'success',
-            $account->is_active ? 'Akun berhasil diaktifkan.' : 'Akun berhasil dinonaktifkan.'
-        );
+        return back()->with('success', $account->is_active ? 'Akun berhasil diaktifkan.' : 'Akun berhasil dinonaktifkan.');
     }
 
     public function forceChangePassword(Request $request, Teacher $teacher)
@@ -241,9 +227,7 @@ class TeacherController extends BaseController
 
         $old = (bool) $account->must_change_password;
 
-        $account->update([
-            'must_change_password' => true,
-        ]);
+        $account->update(['must_change_password' => true]);
 
         activity()
             ->useLog('domain')
@@ -307,10 +291,39 @@ class TeacherController extends BaseController
             ])
             ->log('Teacher account password reset');
 
-        return back()->with(
-            'success',
-            'Password berhasil direset. Guru wajib mengganti password saat login berikutnya.'
-        );
+        return back()->with('success', 'Password berhasil direset. Guru wajib mengganti password saat login berikutnya.');
     }
 
+    /**
+     * Rapihin payload teacher:
+     * - pastikan key ada (nullable)
+     * - kalau religion != "Lainnya", religion_other dipaksa null
+     */
+    private function normalizeTeacherPayload(array $data): array
+    {
+        $data['gender'] = $data['gender'] ?? null;
+        $data['birth_place'] = $data['birth_place'] ?? null;
+        $data['birth_date'] = $data['birth_date'] ?? null;
+
+        $data['religion'] = $data['religion'] ?? null;
+        $data['religion_other'] = isset($data['religion_other'])
+            ? trim((string) $data['religion_other'])
+            : null;
+
+        if (($data['religion'] ?? null) !== 'Lainnya') {
+            $data['religion_other'] = null;
+        } elseif ($data['religion_other'] === '') {
+            // biar konsisten, kosong dianggap null (validasinya nanti yang wajibkan)
+            $data['religion_other'] = null;
+        }
+
+        $data['marital_status'] = $data['marital_status'] ?? null;
+
+        $data['phone'] = $data['phone'] ?? null;
+        $data['email'] = $data['email'] ?? null;
+        $data['address'] = $data['address'] ?? null;
+        $data['employment_status'] = $data['employment_status'] ?? null;
+
+        return $data;
+    }
 }

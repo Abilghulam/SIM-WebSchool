@@ -51,6 +51,32 @@
                                 value="{{ old('birth_date') }}" :error="$errors->first('birth_date')" />
                         </div>
 
+                        @php
+                            $religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
+                            $maritals = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+                        @endphp
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-ui.select label="Agama" name="religion" :error="$errors->first('religion')">
+                                <option value="">- Pilih -</option>
+                                @foreach ($religions as $r)
+                                    <option value="{{ $r }}" @selected(old('religion') === $r)>{{ $r }}
+                                    </option>
+                                @endforeach
+                            </x-ui.select>
+
+                            <x-ui.input label="Lainnya" name="religion_other" value="{{ old('religion_other') }}"
+                                :error="$errors->first('religion_other')" placeholder="Tulis agama..." />
+                        </div>
+
+                        <x-ui.select label="Status Kawin" name="marital_status" :error="$errors->first('marital_status')">
+                            <option value="">- Pilih -</option>
+                            @foreach ($maritals as $m)
+                                <option value="{{ $m }}" @selected(old('marital_status') === $m)>{{ $m }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+
                         <x-ui.input label="Telepon" name="phone" value="{{ old('phone') }}" :error="$errors->first('phone')" />
                         <x-ui.input label="Email" name="email" type="email" value="{{ old('email') }}"
                             :error="$errors->first('email')" />

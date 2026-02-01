@@ -62,7 +62,34 @@
                                 :readonly="$readonly" />
                         </div>
 
-                        {{-- Ini selalu boleh untuk self-edit --}}
+                        @php
+                            $religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
+                            $maritals = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+                        @endphp
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-ui.select label="Agama" name="religion" :disabled="$readonly">
+                                <option value="">- Pilih -</option>
+                                @foreach ($religions as $r)
+                                    <option value="{{ $r }}" @selected(old('religion', $teacher->religion) === $r)>
+                                        {{ $r }}
+                                    </option>
+                                @endforeach
+                            </x-ui.select>
+
+                            <x-ui.input label="Agama (Jika Lainnya)" name="religion_other"
+                                value="{{ old('religion_other', $teacher->religion_other) }}" :readonly="$readonly"
+                                :error="$errors->first('religion_other')" />
+                        </div>
+
+                        <x-ui.select label="Status Kawin" name="marital_status" :disabled="$readonly">
+                            <option value="">- Pilih -</option>
+                            @foreach ($maritals as $m)
+                                <option value="{{ $m }}" @selected(old('marital_status', $teacher->marital_status) === $m)>{{ $m }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+
                         <x-ui.input label="Telepon" name="phone" value="{{ old('phone', $teacher->phone) }}"
                             :error="$errors->first('phone')" />
                         <x-ui.input label="Email" name="email" type="email"

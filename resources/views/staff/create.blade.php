@@ -3,8 +3,8 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Tambah TAS</h2>
-                <p class="text-sm text-gray-500 mt-1">Isi biodata TAS untuk pendataan.</p>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Tambah Tenaga Administrasi Sekolah</h2>
+                <p class="text-sm text-gray-500 mt-1">Isi biodata Tenaga Administrasi Sekolah untuk pendataan.</p>
             </div>
 
             <a href="{{ route('staff.index') }}">
@@ -30,7 +30,7 @@
             <form method="POST" action="{{ route('staff.store') }}" class="space-y-6">
                 @csrf
 
-                <x-ui.card title="Biodata" subtitle="Data utama TAS.">
+                <x-ui.card title="Biodata" subtitle="Data utama Tenaga Administrasi Sekolah.">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.input label="NIP" name="nip" required placeholder="Contoh: 1987xxxxxx"
                             value="{{ old('nip') }}" :error="$errors->first('nip')" />
