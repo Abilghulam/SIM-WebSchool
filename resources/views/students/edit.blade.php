@@ -8,6 +8,8 @@
     ];
 
     $enr = $student->activeEnrollment;
+
+    $selectedIsKip = old('is_kip', is_null($student->is_kip) ? '' : ($student->is_kip ? '1' : '0'));
 @endphp
 
 <x-app-layout>
@@ -15,10 +17,10 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 leading-tight">
-                    Edit Siswa
+                    Edit Data Siswa
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    {{ $student->full_name }} • NIS {{ $student->nis }}
+                    {{ $student->full_name }} - <span class="font-semibold text-gray-900"> {{ $student->nis }}</span>
                 </p>
             </div>
 
@@ -30,6 +32,9 @@
 
     <div class="py-8">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+            {{-- Flash message --}}
+            <x-ui.flash />
 
             {{-- Error summary --}}
             @if ($errors->any())
@@ -48,15 +53,24 @@
                 @method('PUT')
 
                 {{-- BIODATA --}}
-                <x-ui.card title="Biodata" subtitle="Perbarui data utama siswa.">
+                <x-ui.card title="Biodata Siswa" subtitle="Perbarui identitas utama siswa">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.input label="NIS" name="nis" required value="{{ old('nis', $student->nis) }}"
                             :error="$errors->first('nis')" />
 
+                        <x-ui.input label="NISN" name="nisn" required value="{{ old('nisn', $student->nisn) }}"
+                            :error="$errors->first('nisn')" />
+
+                        <x-ui.input label="NIK" name="nik" value="{{ old('nik', $student->nik) }}"
+                            :error="$errors->first('nik')" />
+
+                        <x-ui.input label="Asal Sekolah" name="origin_school"
+                            value="{{ old('origin_school', $student->origin_school) }}" :error="$errors->first('origin_school')" />
+
                         <x-ui.input label="Nama Lengkap" name="full_name" required
                             value="{{ old('full_name', $student->full_name) }}" :error="$errors->first('full_name')" />
 
-                        <x-ui.select label="Jenis Kelamin" name="gender">
+                        <x-ui.select label="Jenis Kelamin" name="gender" :error="$errors->first('gender')">
                             <option value="">- Pilih -</option>
                             <option value="L" @selected(old('gender', $student->gender) === 'L')>Laki-laki</option>
                             <option value="P" @selected(old('gender', $student->gender) === 'P')>Perempuan</option>
@@ -81,23 +95,49 @@
                     </div>
                 </x-ui.card>
 
-                {{-- ORANG TUA / WALI --}}
-                <x-ui.card title="Orang Tua / Wali" subtitle="Perbarui data keluarga.">
+                {{-- KIP --}}
+                <x-ui.card title="Data Siswa KIP" subtitle="Perbarui status KIP siswa.">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-ui.select label="Status Siswa KIP" name="is_kip" :error="$errors->first('is_kip')">
+                            <option value="" @selected($selectedIsKip === '')>- Pilih -</option>
+                            <option value="1" @selected($selectedIsKip === '1')>Ya</option>
+                            <option value="0" @selected($selectedIsKip === '0')>Tidak</option>
+                        </x-ui.select>
+
+                        <x-ui.input label="Nomor KIP" name="kip_number"
+                            value="{{ old('kip_number', $student->kip_number) }}" :error="$errors->first('kip_number')" />
+                    </div>
+
+                    <p class="text-xs text-gray-500 mt-3">
+                        Jika siswa adalah penerima KIP, maka wajib mengisi Nomor KIP
+                    </p>
+                </x-ui.card>
+
+                {{-- ORANG TUA --}}
+                <x-ui.card title="Orang Tua Siswa" subtitle="Perbarui data orang tua siswa">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.input label="Nama Ayah" name="father_name"
                             value="{{ old('father_name', $student->father_name) }}" />
+                        <x-ui.input label="Pekerjaan Ayah" name="father_job"
+                            value="{{ old('father_job', $student->father_job) }}" />
+
                         <x-ui.input label="Nama Ibu" name="mother_name"
                             value="{{ old('mother_name', $student->mother_name) }}" />
-                        <x-ui.input label="Nama Wali" name="guardian_name"
-                            value="{{ old('guardian_name', $student->guardian_name) }}" />
-                        <x-ui.input label="Telepon Orang Tua/Wali" name="parent_phone"
+                        <x-ui.input label="Pekerjaan Ibu" name="mother_job"
+                            value="{{ old('mother_job', $student->mother_job) }}" />
+
+                        <x-ui.input label="Telepon Orang Tua" name="parent_phone"
                             value="{{ old('parent_phone', $student->parent_phone) }}" />
                     </div>
+
+                    <p class="text-xs text-gray-500 mt-3">
+                        Data orang tua siswa bersifat opsional dan dapat diisi jika diperlukan
+                    </p>
                 </x-ui.card>
 
                 {{-- STATUS + ENROLLMENT AKTIF --}}
-                <x-ui.card title="Status & Kelas (Enrollment Aktif)"
-                    subtitle="Mengubah tahun ajaran/kelas akan memindahkan enrollment aktif.">
+                <x-ui.card title="Status Siswa & Penempatan Kelas"
+                    subtitle="Atur penempatan kelas dan tahun ajaran aktif siswa">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.select label="Status" name="status">
                             @foreach ($statusOptions as $val => $label)
@@ -112,9 +152,7 @@
                         <x-ui.select label="Tahun Ajaran" name="school_year_id" :error="$errors->first('school_year_id')">
                             <option value="">- Pilih -</option>
                             @foreach ($schoolYears as $sy)
-                                @php
-                                    $selectedSyId = old('school_year_id', $enr?->school_year_id);
-                                @endphp
+                                @php $selectedSyId = old('school_year_id', $enr?->school_year_id); @endphp
                                 <option value="{{ $sy->id }}" @selected((string) $selectedSyId === (string) $sy->id)>
                                     {{ $sy->name }} @if ($sy->is_active)
                                         (Aktif)
@@ -126,9 +164,7 @@
                         <x-ui.select label="Kelas" name="classroom_id" :error="$errors->first('classroom_id')">
                             <option value="">- Belum ditentukan -</option>
                             @foreach ($classrooms as $c)
-                                @php
-                                    $selectedClassId = old('classroom_id', $enr?->classroom_id);
-                                @endphp
+                                @php $selectedClassId = old('classroom_id', $enr?->classroom_id); @endphp
                                 <option value="{{ $c->id }}" @selected((string) $selectedClassId === (string) $c->id)>
                                     {{ $c->name }} {{ $c->major?->name ? '• ' . $c->major->name : '' }}
                                 </option>
@@ -136,11 +172,15 @@
                         </x-ui.select>
 
                         <div class="md:col-span-2">
-                            <x-ui.input label="Catatan Enrollment (opsional)" name="enrollment_note"
+                            <x-ui.input label="Catatan Penempatan" name="enrollment_note"
                                 placeholder="Catatan mutasi/pindahan/dll"
                                 value="{{ old('enrollment_note', $enr?->note) }}" :error="$errors->first('enrollment_note')" />
                         </div>
                     </div>
+
+                    <p class="text-xs text-gray-500 mt-3">
+                        Mengubah penempatan kelas dan tahun ajaran aktif siswa dapat mengubah data akademik siswa
+                    </p>
                 </x-ui.card>
 
                 {{-- ACTIONS --}}
@@ -154,4 +194,33 @@
             </form>
         </div>
     </div>
+
+    {{-- JS KIP --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const isKip = document.querySelector('select[name="is_kip"]');
+            const kipNumber = document.querySelector('input[name="kip_number"]');
+
+            if (!isKip || !kipNumber) return;
+
+            const syncKipField = () => {
+                const val = isKip.value;
+
+                if (val === '1') {
+                    kipNumber.disabled = false;
+                    kipNumber.required = true;
+                } else if (val === '0') {
+                    kipNumber.value = '';
+                    kipNumber.required = false;
+                    kipNumber.disabled = true;
+                } else {
+                    kipNumber.disabled = false;
+                    kipNumber.required = false;
+                }
+            };
+
+            syncKipField();
+            isKip.addEventListener('change', syncKipField);
+        });
+    </script>
 </x-app-layout>

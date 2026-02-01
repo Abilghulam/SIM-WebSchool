@@ -15,6 +15,8 @@ class StudentStoreRequest extends FormRequest
     {
         return [
             // biodata inti
+            'nisn' => ['required', 'string', 'max:20', 'unique:students,nisn'], 
+            'nik'  => ['nullable', 'string', 'max:20'],
             'nis' => ['required', 'string', 'max:20', 'unique:students,nis'],
             'full_name' => ['required', 'string', 'max:150'],
             'gender' => ['nullable', 'in:L,P'],
@@ -28,12 +30,16 @@ class StudentStoreRequest extends FormRequest
             // keluarga
             'father_name' => ['nullable', 'string', 'max:150'],
             'mother_name' => ['nullable', 'string', 'max:150'],
-            'guardian_name' => ['nullable', 'string', 'max:150'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
+            'father_job'  => ['nullable', 'string', 'max:120'],
+            'mother_job'  => ['nullable', 'string', 'max:120'],
 
             // status
+            'is_kip'     => ['nullable', 'boolean'],
+            'kip_number' => ['nullable', 'string', 'max:30', 'required_if:is_kip,1'],
             'status' => ['nullable', 'in:aktif,lulus,pindah,nonaktif'],
             'entry_year' => ['nullable', 'integer', 'min:1990', 'max:2100'],
+            'origin_school' => ['nullable', 'string', 'max:150'],
 
             // enrollment (riwayat kelas untuk tahun ajaran)
             'school_year_id' => ['required', 'integer', 'exists:school_years,id'],
@@ -44,7 +50,8 @@ class StudentStoreRequest extends FormRequest
             'documents' => ['nullable', 'array'],
             'documents.*.document_type_id' => ['nullable', 'integer', 'exists:document_types,id'],
             'documents.*.title' => ['nullable', 'string', 'max:120'],
-            'documents.*.file' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'], // 5MB
+            'documents.*.file' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+
         ];
     }
 }

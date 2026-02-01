@@ -95,9 +95,20 @@ class StudentController extends BaseController
 
         $data = $request->validated();
 
+        if (array_key_exists('is_kip', $data)) {
+            $data['is_kip'] = (bool) $data['is_kip'];
+        }
+
+        if (isset($data['is_kip']) && $data['is_kip'] === false) {
+            $data['kip_number'] = null;
+        }
+
         DB::transaction(function () use ($data) {
             $student = Student::create([
                 'nis' => $data['nis'],
+                'nisn' => $data['nisn'],
+                'nik' => $data['nik'] ?? null,
+
                 'full_name' => $data['full_name'],
                 'gender' => $data['gender'] ?? null,
                 'birth_place' => $data['birth_place'] ?? null,
@@ -106,10 +117,18 @@ class StudentController extends BaseController
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,
                 'address' => $data['address'] ?? null,
+
+                'origin_school' => $data['origin_school'] ?? null,
+
+                'is_kip' => isset($data['is_kip']) ? (bool) $data['is_kip'] : null,
+                'kip_number' => $data['kip_number'] ?? null,
+
                 'father_name' => $data['father_name'] ?? null,
+                'father_job' => $data['father_job'] ?? null,
                 'mother_name' => $data['mother_name'] ?? null,
-                'guardian_name' => $data['guardian_name'] ?? null,
+                'mother_job' => $data['mother_job'] ?? null,
                 'parent_phone' => $data['parent_phone'] ?? null,
+
                 'status' => $data['status'] ?? 'aktif',
                 'entry_year' => $data['entry_year'] ?? null,
                 'created_by' => auth()->id(),

@@ -16,6 +16,8 @@
         'nonaktif' => 'gray',
         default => 'gray',
     };
+
+    $kipLabel = is_null($student->is_kip) ? '-' : ($student->is_kip ? 'Ya' : 'Tidak');
 @endphp
 
 <x-app-layout>
@@ -33,7 +35,7 @@
                 </div>
 
                 <p class="text-sm text-gray-500 mt-1">
-                    {{ $student->full_name }} • NIS {{ $student->nis }}
+                    {{ $student->full_name }} - <span class="font-semibold text-gray-900"> {{ $student->nis }}</span>
                 </p>
             </div>
 
@@ -55,14 +57,10 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             {{-- Flash message --}}
-            @if (session('success'))
-                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                    {{ session('success') }}
-                </div>
-            @endif
+            <x-ui.flash />
 
             {{-- Ringkasan kelas aktif --}}
-            <x-ui.card title="Ringkasan" subtitle="Informasi kelas aktif dan tahun ajaran.">
+            <x-ui.card title="Ringkasan" subtitle="Informasi kelas dan tahun ajaran aktif siswa">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <div class="text-xs text-gray-500">Tahun Ajaran</div>
@@ -112,6 +110,16 @@
                             </div>
 
                             <div>
+                                <dt class="text-xs text-gray-500">NISN</dt>
+                                <dd class="mt-1 font-semibold text-gray-900">{{ $student->nisn ?? '-' }}</dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">NIK</dt>
+                                <dd class="mt-1 text-gray-900">{{ $student->nik ?? '-' }}</dd>
+                            </div>
+
+                            <div>
                                 <dt class="text-xs text-gray-500">Jenis Kelamin</dt>
                                 <dd class="mt-1 text-gray-900">
                                     @if ($student->gender === 'L')
@@ -125,11 +133,6 @@
                             </div>
 
                             <div>
-                                <dt class="text-xs text-gray-500">Agama</dt>
-                                <dd class="mt-1 text-gray-900">{{ $student->religion ?? '-' }}</dd>
-                            </div>
-
-                            <div>
                                 <dt class="text-xs text-gray-500">Tempat, Tanggal Lahir</dt>
                                 <dd class="mt-1 text-gray-900">
                                     {{ $student->birth_place ?? '-' }}
@@ -137,6 +140,11 @@
                                         , {{ $student->birth_date->format('d-m-Y') }}
                                     @endif
                                 </dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">Agama</dt>
+                                <dd class="mt-1 text-gray-900">{{ $student->religion ?? '-' }}</dd>
                             </div>
 
                             <div>
@@ -149,21 +157,41 @@
                                 <dd class="mt-1 text-gray-900">{{ $student->email ?? '-' }}</dd>
                             </div>
 
+                            <div>
+                                <dt class="text-xs text-gray-500">Asal Sekolah</dt>
+                                <dd class="mt-1 text-gray-900">{{ $student->origin_school ?? '-' }}</dd>
+                            </div>
+
                             <div class="md:col-span-2">
                                 <dt class="text-xs text-gray-500">Alamat</dt>
                                 <dd class="mt-1 text-gray-900 whitespace-pre-line">{{ $student->address ?? '-' }}</dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">Status KIP</dt>
+                                <dd class="mt-1 text-gray-900">{{ $kipLabel }}</dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">Nomor KIP</dt>
+                                <dd class="mt-1 text-gray-900">{{ $student->kip_number ?? '-' }}</dd>
                             </div>
                         </dl>
                     </x-ui.card>
                 </div>
 
-                {{-- Orang Tua / Wali --}}
+                {{-- Orang Tua --}}
                 <div>
-                    <x-ui.card title="Orang Tua / Wali" subtitle="Kontak keluarga siswa.">
+                    <x-ui.card title="Orang Tua" subtitle="Data orang tua siswa.">
                         <div class="space-y-4">
                             <div>
                                 <div class="text-xs text-gray-500">Nama Ayah</div>
                                 <div class="mt-1 text-gray-900">{{ $student->father_name ?? '-' }}</div>
+                            </div>
+
+                            <div>
+                                <div class="text-xs text-gray-500">Pekerjaan Ayah</div>
+                                <div class="mt-1 text-gray-900">{{ $student->father_job ?? '-' }}</div>
                             </div>
 
                             <div>
@@ -172,12 +200,12 @@
                             </div>
 
                             <div>
-                                <div class="text-xs text-gray-500">Nama Wali</div>
-                                <div class="mt-1 text-gray-900">{{ $student->guardian_name ?? '-' }}</div>
+                                <div class="text-xs text-gray-500">Pekerjaan Ibu</div>
+                                <div class="mt-1 text-gray-900">{{ $student->mother_job ?? '-' }}</div>
                             </div>
 
                             <div>
-                                <div class="text-xs text-gray-500">Telepon Orang Tua/Wali</div>
+                                <div class="text-xs text-gray-500">Telepon Orang Tua</div>
                                 <div class="mt-1 text-gray-900">{{ $student->parent_phone ?? '-' }}</div>
                             </div>
                         </div>
@@ -235,7 +263,7 @@
                 $canManageDocs = $user->can('uploadDocument', $student);
             @endphp
 
-            <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk siswa.">
+            <x-ui.card title="Dokumen" subtitle="Pendataan dokumen pendukung siswa">
                 <x-ui.table>
                     <x-slot:head>
                         <tr>
@@ -255,7 +283,6 @@
                             $sizeKb = $doc->file_size ? number_format($doc->file_size / 1024, 0) . ' KB' : '-';
                             $uploadedAt = $doc->created_at ? $doc->created_at->format('d-m-Y H:i') : '-';
                             $uploaderName = $doc->uploadedBy?->name ?? '-';
-                            $fileUrl = $doc->file_path ? asset('storage/' . $doc->file_path) : null;
                         @endphp
 
                         <tr class="hover:bg-gray-50">
@@ -284,14 +311,10 @@
                             </td>
 
                             <td class="px-6 py-4 text-right whitespace-nowrap">
-                                @if ($fileUrl)
-                                    <a href="{{ route('students.documents.show', [$student, $doc]) }}" target="_blank"
-                                        class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                        Lihat
-                                    </a>
-                                @else
-                                    <span class="text-gray-400">-</span>
-                                @endif
+                                <a href="{{ route('students.documents.show', [$student, $doc]) }}" target="_blank"
+                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    Lihat
+                                </a>
 
                                 @if ($canManageDocs)
                                     <span class="text-gray-300 mx-2">|</span>
@@ -328,7 +351,6 @@
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h4 class="text-base font-semibold text-gray-900">Upload Dokumen</h4>
-                                <p class="text-sm text-gray-500 mt-1">PDF/JPG/PNG maksimal 5MB.</p>
                             </div>
                         </div>
 
@@ -337,7 +359,7 @@
                             @csrf
 
                             <div class="md:col-span-4">
-                                <x-ui.select label="Jenis Dokumen (opsional)" name="document_type_id">
+                                <x-ui.select label="Jenis Dokumen" name="document_type_id">
                                     <option value="">- Pilih -</option>
                                     @foreach ($documentTypes ?? [] as $dt)
                                         <option value="{{ $dt->id }}">{{ $dt->name }}</option>
@@ -346,7 +368,8 @@
                             </div>
 
                             <div class="md:col-span-4">
-                                <x-ui.input label="Judul (opsional)" name="title" placeholder="Contoh: Foto 3x4" />
+                                <x-ui.input label="Judul Dokumen" name="title"
+                                    placeholder="Contoh: Surat Keterangan Lulus" />
                             </div>
 
                             <div class="md:col-span-4">
@@ -354,6 +377,8 @@
                                     <input type="file" name="file" class="block w-full text-sm text-gray-700"
                                         required />
                                 </x-ui.field>
+
+                                <p class="text-sm text-gray-500 mt-1">PDF / JPG / PNG maks. 5MB</p>
                             </div>
 
                             <div class="md:col-span-12 flex items-center gap-2 pt-1">

@@ -20,7 +20,7 @@
                     {{ $isAdminOrOperator ? 'Data Siswa' : 'Siswa Kelas Saya' }}
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Gunakan pencarian dan filter untuk menemukan data siswa.
+                    Halaman utama sistem pendataan siswa SMK Negeri 9 Muaro Jambi
                 </p>
             </div>
 
@@ -53,7 +53,7 @@
             @endif
 
             {{-- Filter --}}
-            <x-ui.card title="Filter" subtitle="Cari dan saring data siswa.">
+            <x-ui.card title="Filter" subtitle="Cari dan saring data siswa">
                 <form method="GET" action="{{ route('students.index') }}"
                     class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
@@ -129,7 +129,7 @@
                         </a>
 
                         <div class="text-sm text-gray-500 ms-auto">
-                            Total: <span class="font-semibold text-gray-900">{{ $students->total() }}</span>
+                            <span class="font-semibold text-gray-900">{{ $students->total() }}</span> Siswa
                         </div>
                     </div>
                 </form>

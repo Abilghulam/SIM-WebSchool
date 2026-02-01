@@ -19,6 +19,8 @@ class Student extends Model
 
     protected $fillable = [
         'nis',
+        'nisn',          
+        'nik',         
         'full_name',
         'gender',
         'birth_place',
@@ -27,10 +29,17 @@ class Student extends Model
         'phone',
         'email',
         'address',
+
         'father_name',
+        'father_job',    
         'mother_name',
-        'guardian_name',
+        'mother_job',    
         'parent_phone',
+
+        'is_kip',        
+        'kip_number',    
+        'origin_school', 
+
         'status',
         'entry_year',
         'created_by',
@@ -40,6 +49,25 @@ class Student extends Model
     protected $casts = [
         'birth_date' => 'date',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('domain')
+            ->logOnly([
+                'nis', 'nisn', 'nik',
+                'full_name', 'gender', 'birth_place', 'birth_date', 'religion',
+                'phone', 'email', 'address',
+                'father_name', 'father_job',
+                'mother_name', 'mother_job',
+                'parent_phone',
+                'is_kip', 'kip_number',
+                'origin_school',
+                'status', 'entry_year',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function createdBy(): BelongsTo
     {
@@ -67,31 +95,6 @@ class Student extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(StudentDocument::class);
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->useLogName('domain')
-            ->logOnly([
-                'nis',
-                'full_name',
-                'gender',
-                'birth_place',
-                'birth_date',
-                'religion',
-                'phone',
-                'email',
-                'address',
-                'father_name',
-                'mother_name',
-                'guardian_name',
-                'parent_phone',
-                'status',
-                'entry_year',
-            ])
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
     }
 
     public function getDescriptionForEvent(string $eventName): string
