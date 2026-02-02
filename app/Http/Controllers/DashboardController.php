@@ -8,6 +8,7 @@ use App\Models\SchoolYear;
 use App\Models\StudentEnrollment;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class DashboardController extends Controller
         $nc->syncTeacher($user);
 
         // ==========================
-        // DASHBOARD (GURU / WALI KELAS) - 1 VIEW
+        // DASHBOARD (GURU / WALI KELAS)
         // ==========================
         if (in_array(($user->role_label ?? null), ['guru', 'wali_kelas'], true)) {
             return $this->teacherDashboard($user);
@@ -44,7 +45,6 @@ class DashboardController extends Controller
 
         $teacher = $user->teacher;
 
-        // default (mode guru biasa)
         $payload = [
             'activeSchoolYear' => $activeSchoolYear,
             'assignment' => null,
@@ -57,7 +57,6 @@ class DashboardController extends Controller
             'recentStudents' => collect(),
             'isHomeroomMode' => false,
 
-            // tetap bisa dipakai kalau kamu butuh indikator kelengkapan profile
             'profileChecks' => [
                 'missingPhone' => $teacher ? empty($teacher->phone) : true,
                 'missingEmail' => $teacher ? empty($teacher->email) : true,
@@ -65,20 +64,13 @@ class DashboardController extends Controller
             ],
         ];
 
-        // homeroom mode hanya kalau:
-        // - ada TA aktif
-        // - user punya teacher_id
-        // - lolos Gate viewMyClass
         if ($activeYearId && $user->teacher_id && $user->can('viewMyClass')) {
             $homeroom = $this->buildHomeroomData($activeYearId, (int) $user->teacher_id);
 
-            // kalau benar-benar ada assignment aktif -> masuk mode homeroom
             if ($homeroom['assignment']) {
                 $payload = array_merge($payload, $homeroom);
                 $payload['isHomeroomMode'] = true;
             } else {
-                // Gate true tapi assignment belum ada, tetap mode guru biasa, tapi kasih warning opsional
-                // (boleh kamu hilangkan kalau nggak mau flash)
                 session()->flash('warning', 'Akun kamu belum terhubung ke wali kelas pada Tahun Ajaran aktif.');
             }
         }
@@ -176,21 +168,33 @@ class DashboardController extends Controller
 
     private function adminDashboard()
     {
+        $activeYearId = SchoolYear::activeId();
+
+        // ===== Stats cards =====
         $stats = [
             'students' => Student::query()->where('status', 'aktif')->count(),
             'teachers' => Teacher::query()->where('is_active', true)->count(),
+            'staff' => Staff::query()->where('is_active', true)->count(),
             'classrooms' => Classroom::query()->count(),
             'activeSchoolYear' => SchoolYear::query()->where('is_active', true)->value('name'),
         ];
 
-        $studentsByMajor = DB::table('majors as m')
-            ->leftJoin('classrooms as c', 'c.major_id', '=', 'm.id')
-            ->leftJoin('student_enrollments as se', 'se.classroom_id', '=', 'c.id')
-            ->where('se.is_active', true)
-            ->selectRaw('m.name as label, COUNT(se.id) as value')
-            ->groupBy('m.name')
-            ->orderBy('m.name')
-            ->get();
+        // ===== Charts =====
+        // Disarankan pakai TA aktif (biar data relevan). Kalau tidak ada TA aktif, chart major bisa kosong.
+        $studentsByMajor = collect();
+        if ($activeYearId) {
+            $studentsByMajor = DB::table('majors as m')
+                ->leftJoin('classrooms as c', 'c.major_id', '=', 'm.id')
+                ->leftJoin('student_enrollments as se', function ($join) use ($activeYearId) {
+                    $join->on('se.classroom_id', '=', 'c.id')
+                        ->where('se.school_year_id', '=', $activeYearId)
+                        ->where('se.is_active', '=', true);
+                })
+                ->selectRaw('m.name as label, COUNT(se.id) as value')
+                ->groupBy('m.name')
+                ->orderBy('m.name')
+                ->get();
+        }
 
         $studentsByGender = DB::table('students')
             ->selectRaw("COALESCE(NULLIF(gender,''), 'Tidak diisi') as label, COUNT(*) as value")
@@ -204,8 +208,13 @@ class DashboardController extends Controller
             ->orderBy('label')
             ->get();
 
-        $activeYearId = SchoolYear::activeId();
+        $staffByEmployment = DB::table('staff')
+            ->selectRaw("COALESCE(NULLIF(employment_status,''), 'Tidak diisi') as label, COUNT(*) as value")
+            ->groupBy('label')
+            ->orderBy('label')
+            ->get();
 
+        // ===== Alerts =====
         $alerts = [
             'missingActiveSchoolYear' => $activeYearId ? false : true,
 
@@ -222,8 +231,14 @@ class DashboardController extends Controller
                 ->doesntHave('user')
                 ->count(),
 
+            'staffWithoutAccount' => Staff::query()
+                ->where('is_active', true)
+                ->doesntHave('user')
+                ->count(),
+
+            // biar relevan: hitung untuk guru + operator (TAS)
             'mustChangePasswordCount' => User::query()
-                ->where('role_label', 'guru')
+                ->whereIn('role_label', ['guru', 'operator'])
                 ->where('must_change_password', true)
                 ->count(),
 
@@ -236,6 +251,7 @@ class DashboardController extends Controller
                 : 0,
         ];
 
+        // ===== KPI =====
         $kpi = [
             'activeYearId' => $activeYearId,
             'enrollmentsActive' => $activeYearId
@@ -253,6 +269,7 @@ class DashboardController extends Controller
                 : 0,
         ];
 
+        // ===== Top Classrooms =====
         $topClassrooms = collect();
         if ($activeYearId) {
             $topClassrooms = Classroom::query()
@@ -272,6 +289,7 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // ===== Recents =====
         $recentStudents = Student::query()
             ->latest()
             ->limit(5)
@@ -282,16 +300,23 @@ class DashboardController extends Controller
             ->limit(5)
             ->get(['id', 'full_name', 'nip', 'created_at']);
 
+        $recentStaff = Staff::query()
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'full_name', 'nip', 'created_at']);
+
         return view('dashboard', compact(
             'stats',
             'studentsByMajor',
             'studentsByGender',
             'teachersByEmployment',
+            'staffByEmployment',
             'alerts',
             'kpi',
             'topClassrooms',
             'recentStudents',
-            'recentTeachers'
+            'recentTeachers',
+            'recentStaff'
         ));
     }
 }
