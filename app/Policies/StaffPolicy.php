@@ -38,7 +38,12 @@ class StaffPolicy
 
     public function createAccount(User $user, Staff $staff): bool
     {
-        // hanya admin/operator; pencipta akun TAS yang role=operator nanti tetap super admin yang buat
         return $user->isAdmin() || $user->isOperator();
     }
+
+    public function uploadDocument(User $user, Staff $staff): bool
+    {
+        return $user->isAdmin() || $user->isOperator();
+    }
+
 }

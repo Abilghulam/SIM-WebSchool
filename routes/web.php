@@ -21,6 +21,7 @@ use \App\Http\Controllers\StudentBulkPlacementController;
 use App\Http\Controllers\StudentDocumentController;
 use App\Http\Controllers\TeacherDocumentController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StaffDocumentController;
 
 Route::view('/', 'welcome');
 
@@ -101,6 +102,15 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::put('staff/{staff}/account/reset-password', [StaffController::class, 'resetAccountPassword'])
                 ->name('staff.account.reset-password');
+
+            // Staff Documents
+            Route::prefix('staff/{staff}')->name('staff.')->group(function () {
+                Route::post('documents', [StaffDocumentController::class, 'store'])->name('documents.store');
+                Route::get('documents/{document}', [StaffDocumentController::class, 'show'])->name('documents.show');
+                Route::get('documents/{document}/edit', [StaffDocumentController::class, 'edit'])->name('documents.edit');
+                Route::put('documents/{document}', [StaffDocumentController::class, 'update'])->name('documents.update');
+                Route::delete('documents/{document}', [StaffDocumentController::class, 'destroy'])->name('documents.destroy');
+            });
 
             // Master data
             Route::resource('majors', MajorController::class)->except(['show']);

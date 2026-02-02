@@ -15,8 +15,8 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 leading-tight">Data Tenaga Administrasi Sekolah</h2>
-                <p class="text-sm text-gray-500 mt-1">Gunakan pencarian dan filter untuk menemukan data Tenaga
-                    Administrasi Sekolah.</p>
+                <p class="text-sm text-gray-500 mt-1">Halaman utama sistem pendataan tenaga administrasi sekolah SMK
+                    Negeri 9 Muaro Jambi</p>
             </div>
 
             @if ($isAdminOrOperator)

@@ -83,8 +83,14 @@ class StaffController extends BaseController
     {
         $this->authorize('view', $staff);
 
-        $staff->load(['user']);
-        return view('staff.show', compact('staff'));
+        $staff->load(['user', 'documents.uploadedBy', 'documents.type']);
+
+        $documentTypes = \App\Models\DocumentType::query()
+            ->where('for', 'staff')
+            ->orderBy('name')
+            ->get();
+
+        return view('staff.show', compact('staff', 'documentTypes'));
     }
 
     public function edit(Staff $staff)

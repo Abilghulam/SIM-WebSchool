@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Staff extends Model
 {
@@ -97,5 +98,10 @@ class Staff extends Model
         }
 
         return $query->whereKey([]);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(StaffDocument::class);
     }
 }

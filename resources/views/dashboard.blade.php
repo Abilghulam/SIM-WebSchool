@@ -188,10 +188,10 @@
                 </x-ui.card>
 
                 {{-- Ringkasan TA Aktif --}}
-                <x-ui.card title="Ringkasan TA Aktif" subtitle="Snapshot kondisi akademik saat ini.">
+                <x-ui.card title="Ringkasan Tahun Ajaran Aktif" subtitle="Snapshot kondisi akademik saat ini.">
                     <div class="space-y-3 text-sm text-gray-700">
                         <div class="flex items-center justify-between">
-                            <span>Enrollment aktif (TA aktif)</span>
+                            <span>Pendaftaran siswa aktif</span>
                             <span class="font-semibold">{{ (int) ($kpi['enrollmentsActive'] ?? 0) }}</span>
                         </div>
 
