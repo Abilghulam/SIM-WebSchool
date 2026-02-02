@@ -7,6 +7,14 @@
     $badgeText = $staff->is_active ? 'Aktif' : 'Nonaktif';
 
     $account = $staff->user;
+
+    $religionText = $staff->religion ?? '-';
+    if (($staff->religion ?? null) === 'Lainnya') {
+        $religionText = trim((string) ($staff->religion_other ?? ''));
+        $religionText = $religionText !== '' ? $religionText : 'Lainnya';
+    }
+
+    $maritalText = $staff->marital_status ?? '-';
 @endphp
 
 <x-app-layout>
@@ -14,12 +22,12 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-semibold text-gray-900 leading-tight">Detail TAS</h2>
+                    <h2 class="text-xl font-semibold text-gray-900 leading-tight">Detail Tenaga Administrasi Sekolah</h2>
                     <x-ui.badge :variant="$badgeVariant">{{ $badgeText }}</x-ui.badge>
                 </div>
 
                 <p class="text-sm text-gray-500 mt-1">
-                    {{ $staff->full_name }} • NIP {{ $staff->nip }}
+                    {{ $staff->full_name }} - <span class="font-semibold text-gray-900">{{ $staff->nip }}</span>
                 </p>
             </div>
 
@@ -65,8 +73,8 @@
             @endif
 
             {{-- Ringkasan --}}
-            <x-ui.card title="Ringkasan" subtitle="Informasi singkat TAS.">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <x-ui.card title="Ringkasan" subtitle="Informasi singkat tenaga administrasi sekolah">
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <div>
                         <div class="text-xs text-gray-500">NIP</div>
                         <div class="mt-1 font-semibold text-gray-900">{{ $staff->nip }}</div>
@@ -75,6 +83,16 @@
                     <div>
                         <div class="text-xs text-gray-500">Status Kepegawaian</div>
                         <div class="mt-1 font-semibold text-gray-900">{{ $staff->employment_status ?? '-' }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-gray-500">Agama</div>
+                        <div class="mt-1 font-semibold text-gray-900">{{ $religionText }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-gray-500">Status Kawin</div>
+                        <div class="mt-1 font-semibold text-gray-900">{{ $maritalText }}</div>
                     </div>
 
                     <div>
@@ -90,7 +108,8 @@
             </x-ui.card>
 
             {{-- Akun Login --}}
-            <x-ui.card title="Akun Login" subtitle="Akun untuk mengakses SIM (username dan password awal = NIP).">
+            <x-ui.card title="Akun Login"
+                subtitle="Informasi akun login tenaga administrasi sekolah untuk mengakses sistem">
                 @if (!$isAdminOrOperator)
                     <div class="text-sm text-gray-600">
                         Hanya admin/operator yang dapat mengelola akun login.
@@ -136,17 +155,20 @@
                         </div>
 
                         <div class="mt-4 text-sm text-gray-600">
-                            TAS login menggunakan <span class="font-semibold">NIP</span>.
+                            TAS login menggunakan <span class="font-semibold">NIP</span>
                             @if ($account->must_change_password)
-                                Saat ini masih <span class="font-semibold">wajib ganti password</span> saat login
-                                berikutnya.
+                                dan saat ini masih <span class="font-semibold">wajib ganti password</span> saat login
+                                berikutnya
+                            @else
+                                dan saat ini <span class="font-semibold">tidak wajib ganti password</span> saat login
+                                berikutnya
                             @endif
                         </div>
 
                         {{-- Kelola akun --}}
                         <div class="mt-6 border-t border-gray-200 pt-4">
                             <h4 class="text-sm font-semibold text-gray-900">Kelola Akun</h4>
-                            <p class="text-xs text-gray-500 mt-1">Aksi ini hanya untuk admin/operator.</p>
+                            <p class="text-xs text-gray-500 mt-1">Kelola aktivasi dan keamanan akun TAS</p>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                 {{-- Toggle Active --}}
@@ -169,8 +191,7 @@
                                     </form>
 
                                     <div class="text-xs text-gray-500 mt-2">
-                                        Catatan: akun nonaktif akan otomatis logout saat mencoba akses (middleware <span
-                                            class="font-semibold">active</span>).
+                                        Catatan: akun nonaktif akan otomatis logout saat mencoba akses
                                     </div>
                                 </div>
 
@@ -189,19 +210,13 @@
                                     </form>
 
                                     <div class="text-xs text-gray-500 mt-2">
-                                        Berguna jika TAS lupa password tapi belum sempat direset.
+                                        Catatan: jika TAS lupa password tapi belum sempat direset
                                     </div>
                                 </div>
 
                                 {{-- Reset Password Manual --}}
-                                <div class="md:col-span-1">
-                                    <div class="text-xs text-gray-500 mb-1">Reset Password</div>
-                                    <div class="text-xs text-gray-500">
-                                        Set password baru manual, lalu TAS wajib ganti saat login berikutnya.
-                                    </div>
-                                </div>
-
                                 <div class="md:col-span-3">
+                                    <div class="text-xs text-gray-500 mb-1">Reset Password</div>
                                     <div class="mt-2 border border-gray-200 rounded-xl p-4 bg-gray-50">
                                         <form method="POST"
                                             action="{{ route('staff.account.reset-password', $staff) }}"
@@ -233,15 +248,16 @@
 
                         {{-- Template pesan siap copy --}}
                         <div class="mt-6 border-t border-gray-200 pt-4">
-                            <h4 class="text-sm font-semibold text-gray-900">Template Pesan untuk TAS</h4>
+                            <h4 class="text-sm font-semibold text-gray-900">Template Informasi Akun TAS</h4>
                             <p class="text-xs text-gray-500 mt-1">
-                                Copy-paste pesan berikut ke WhatsApp/Chat internal.
+                                Gunakan template berikut untuk menginformasikan akun
+                                login TAS
                             </p>
 
                             @php
                                 $templateFormal =
                                     "Yth. Bapak/Ibu {$staff->full_name},\n\n" .
-                                    "Akun SIM sekolah Anda sudah dibuat.\n" .
+                                    "Akun Sistem Informasi Manajemen sekolah Anda sudah dibuat.\n" .
                                     "Username: {$account->username} (NIP)\n" .
                                     "Silakan login melalui aplikasi, lalu ganti password setelah berhasil masuk.\n\n" .
                                     'Terima kasih.';
@@ -293,10 +309,8 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                             </div>
 
                             <div class="md:col-span-12 text-xs text-gray-500">
-                                Username & password awal akan menggunakan NIP:
-                                <span class="font-semibold">{{ $staff->nip }}</span>.
-                                TAS akan diminta mengganti password saat login pertama.
-                                <span class="font-semibold">Role akun: operator</span>.
+                                Username & password awal akan menggunakan NIP
+                                <span class="font-semibold">{{ $staff->nip }}</span>
                             </div>
                         </form>
                     @endif
@@ -309,6 +323,11 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                     <div>
                         <dt class="text-xs text-gray-500">Nama Lengkap</dt>
                         <dd class="mt-1 font-semibold text-gray-900">{{ $staff->full_name }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs text-gray-500">NIP</dt>
+                        <dd class="mt-1 font-semibold text-gray-900">{{ $staff->nip }}</dd>
                     </div>
 
                     <div>
@@ -332,6 +351,27 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                                 , {{ $staff->birth_date->format('d-m-Y') }}
                             @endif
                         </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs text-gray-500">Agama</dt>
+                        <dd class="mt-1 text-gray-900">
+                            @if (($staff->religion ?? null) === 'Lainnya')
+                                {{ $staff->religion_other ?: 'Lainnya' }}
+                            @else
+                                {{ $staff->religion ?? '-' }}
+                            @endif
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs text-gray-500">Status Kawin</dt>
+                        <dd class="mt-1 text-gray-900">{{ $staff->marital_status ?? '-' }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs text-gray-500">Status Kepegawaian</dt>
+                        <dd class="mt-1 text-gray-900">{{ $staff->employment_status ?? '-' }}</dd>
                     </div>
 
                     <div>

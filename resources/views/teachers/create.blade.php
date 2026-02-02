@@ -66,7 +66,7 @@
                             </x-ui.select>
 
                             <x-ui.input label="Lainnya" name="religion_other" value="{{ old('religion_other') }}"
-                                :error="$errors->first('religion_other')" placeholder="Tulis agama..." />
+                                :error="$errors->first('religion_other')" placeholder="Ketik agama lainnya.." />
                         </div>
 
                         <x-ui.select label="Status Kawin" name="marital_status" :error="$errors->first('marital_status')">
@@ -107,4 +107,31 @@
 
         </div>
     </div>
+
+    {{-- JS toggle religion_other --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const religionSelect = document.querySelector('select[name="religion"]');
+            const religionOther = document.querySelector('input[name="religion_other"]');
+
+            if (!religionSelect || !religionOther) return;
+
+            const syncReligionOther = () => {
+                const val = religionSelect.value;
+
+                if (val === 'Lainnya') {
+                    religionOther.disabled = false;
+                    religionOther.required = true;
+                } else {
+                    religionOther.value = '';
+                    religionOther.required = false;
+                    religionOther.disabled = true;
+                }
+            };
+
+            syncReligionOther();
+            religionSelect.addEventListener('change', syncReligionOther);
+        });
+    </script>
+
 </x-app-layout>

@@ -162,11 +162,6 @@
                                 <dd class="mt-1 text-gray-900">{{ $student->origin_school ?? '-' }}</dd>
                             </div>
 
-                            <div class="md:col-span-2">
-                                <dt class="text-xs text-gray-500">Alamat</dt>
-                                <dd class="mt-1 text-gray-900 whitespace-pre-line">{{ $student->address ?? '-' }}</dd>
-                            </div>
-
                             <div>
                                 <dt class="text-xs text-gray-500">Status KIP</dt>
                                 <dd class="mt-1 text-gray-900">{{ $kipLabel }}</dd>
@@ -175,6 +170,11 @@
                             <div>
                                 <dt class="text-xs text-gray-500">Nomor KIP</dt>
                                 <dd class="mt-1 text-gray-900">{{ $student->kip_number ?? '-' }}</dd>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <dt class="text-xs text-gray-500">Alamat</dt>
+                                <dd class="mt-1 text-gray-900 whitespace-pre-line">{{ $student->address ?? '-' }}</dd>
                             </div>
                         </dl>
                     </x-ui.card>

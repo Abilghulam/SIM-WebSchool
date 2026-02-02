@@ -22,6 +22,11 @@ class Staff extends Model
         'gender',
         'birth_place',
         'birth_date',
+
+        'religion',
+        'religion_other',
+        'marital_status',
+
         'phone',
         'email',
         'address',
@@ -36,6 +41,31 @@ class Staff extends Model
         'is_active' => 'boolean',
     ];
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('domain')
+            ->logOnly([
+                'nip',
+                'full_name',
+                'gender',
+                'birth_place',
+                'birth_date',
+
+                'religion',
+                'religion_other',
+                'marital_status',
+
+                'phone',
+                'email',
+                'address',
+                'employment_status',
+                'is_active',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
     public function user(): HasOne
     {
         return $this->hasOne(User::class, 'staff_id');
@@ -49,26 +79,6 @@ class Staff extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->useLogName('domain')
-            ->logOnly([
-                'nip',
-                'full_name',
-                'gender',
-                'birth_place',
-                'birth_date',
-                'phone',
-                'email',
-                'address',
-                'employment_status',
-                'is_active',
-            ])
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
     }
 
     public function getDescriptionForEvent(string $eventName): string

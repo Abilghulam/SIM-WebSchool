@@ -12,7 +12,8 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 leading-tight">Edit Guru</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ $teacher->full_name }} • NIP {{ $teacher->nip }}</p>
+                <p class="text-sm text-gray-500 mt-1"> {{ $teacher->full_name }} - <span
+                        class="font-semibold text-gray-900">{{ $teacher->nip }}</span></p>
             </div>
 
             <a href="{{ route('teachers.show', $teacher) }}">
@@ -77,9 +78,9 @@
                                 @endforeach
                             </x-ui.select>
 
-                            <x-ui.input label="Agama (Jika Lainnya)" name="religion_other"
+                            <x-ui.input label="Lainnya" name="religion_other"
                                 value="{{ old('religion_other', $teacher->religion_other) }}" :readonly="$readonly"
-                                :error="$errors->first('religion_other')" />
+                                :error="$errors->first('religion_other')" placeholder="Ketik agama lainnya.." />
                         </div>
 
                         <x-ui.select label="Status Kawin" name="marital_status" :disabled="$readonly">
@@ -120,4 +121,42 @@
 
         </div>
     </div>
+
+    {{-- JS toggle religion_other (respect readonly) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const religionSelect = document.querySelector('select[name="religion"]');
+            const religionOther = document.querySelector('input[name="religion_other"]');
+
+            if (!religionSelect || !religionOther) return;
+
+            // readonly dari server (blade)
+            const isReadonly = @json($readonly);
+
+            const syncReligionOther = () => {
+                const val = religionSelect.value;
+
+                if (val === 'Lainnya') {
+                    religionOther.required = true;
+
+                    // kalau bukan readonly, baru boleh enable
+                    if (!isReadonly) {
+                        religionOther.disabled = false;
+                    }
+                } else {
+                    religionOther.required = false;
+
+                    // kalau bukan readonly, baru boleh clear+disable
+                    if (!isReadonly) {
+                        religionOther.value = '';
+                        religionOther.disabled = true;
+                    }
+                }
+            };
+
+            syncReligionOther();
+            religionSelect.addEventListener('change', syncReligionOther);
+        });
+    </script>
+
 </x-app-layout>

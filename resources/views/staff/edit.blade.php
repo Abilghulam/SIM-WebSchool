@@ -62,8 +62,33 @@
                                 :readonly="$readonly" />
                         </div>
 
-                        {{-- Kalau nanti TAS boleh self-edit, bagian ini bisa dibiarkan tanpa readonly.
-                             Untuk sekarang kita samakan dengan guru: selalu bisa edit phone/email/address --}}
+                        @php
+                            $religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
+                            $maritals = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+                        @endphp
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-ui.select label="Agama" name="religion" :disabled="$readonly" id="religion">
+                                <option value="">- Pilih -</option>
+                                @foreach ($religions as $r)
+                                    <option value="{{ $r }}" @selected(old('religion', $staff->religion) === $r)>
+                                        {{ $r }}</option>
+                                @endforeach
+                            </x-ui.select>
+
+                            <x-ui.input label="Lainnya" name="religion_other"
+                                value="{{ old('religion_other', $staff->religion_other) }}" :readonly="$readonly"
+                                :error="$errors->first('religion_other')" id="religion_other" placeholder="Ketik agama lainnya.." />
+                        </div>
+
+                        <x-ui.select label="Status Kawin" name="marital_status" :disabled="$readonly">
+                            <option value="">- Pilih -</option>
+                            @foreach ($maritals as $m)
+                                <option value="{{ $m }}" @selected(old('marital_status', $staff->marital_status) === $m)>{{ $m }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+
                         <x-ui.input label="Telepon" name="phone" value="{{ old('phone', $staff->phone) }}"
                             :error="$errors->first('phone')" />
                         <x-ui.input label="Email" name="email" type="email"
@@ -94,4 +119,41 @@
 
         </div>
     </div>
+
+    {{-- JS toggle religion_other (respect readonly) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const religionSelect = document.querySelector('select[name="religion"]');
+            const religionOther = document.querySelector('input[name="religion_other"]');
+
+            if (!religionSelect || !religionOther) return;
+
+            // readonly dari server (blade)
+            const isReadonly = @json($readonly);
+
+            const syncReligionOther = () => {
+                const val = religionSelect.value;
+
+                if (val === 'Lainnya') {
+                    religionOther.required = true;
+
+                    // kalau bukan readonly, baru boleh enable
+                    if (!isReadonly) {
+                        religionOther.disabled = false;
+                    }
+                } else {
+                    religionOther.required = false;
+
+                    // kalau bukan readonly, baru boleh clear+disable
+                    if (!isReadonly) {
+                        religionOther.value = '';
+                        religionOther.disabled = true;
+                    }
+                }
+            };
+
+            syncReligionOther();
+            religionSelect.addEventListener('change', syncReligionOther);
+        });
+    </script>
 </x-app-layout>

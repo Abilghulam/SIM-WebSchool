@@ -15,7 +15,9 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 leading-tight">Data Guru</h2>
-                <p class="text-sm text-gray-500 mt-1">Gunakan pencarian dan filter untuk menemukan data guru.</p>
+                <p class="text-sm text-gray-500 mt-1">
+                    Halaman utama sistem pendataan guru SMK Negeri 9 Muaro Jambi
+                </p>
             </div>
 
             @if ($isAdminOrOperator)
@@ -60,7 +62,7 @@
                         </a>
 
                         <div class="text-sm text-gray-500 ms-auto">
-                            Total: <span class="font-semibold text-gray-900">{{ $teachers->total() }}</span>
+                            <span class="font-semibold text-gray-900">{{ $teachers->total() }}</span> Guru
                         </div>
                     </div>
                 </form>

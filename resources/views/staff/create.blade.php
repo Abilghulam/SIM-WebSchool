@@ -51,6 +51,32 @@
                                 value="{{ old('birth_date') }}" :error="$errors->first('birth_date')" />
                         </div>
 
+                        @php
+                            $religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
+                            $maritals = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+                        @endphp
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-ui.select label="Agama" name="religion" :error="$errors->first('religion')" id="religion">
+                                <option value="">- Pilih -</option>
+                                @foreach ($religions as $r)
+                                    <option value="{{ $r }}" @selected(old('religion') === $r)>{{ $r }}
+                                    </option>
+                                @endforeach
+                            </x-ui.select>
+
+                            <x-ui.input label="Lainnya" name="religion_other" value="{{ old('religion_other') }}"
+                                :error="$errors->first('religion_other')" placeholder="Ketik agama lainnya.." id="religion_other" />
+                        </div>
+
+                        <x-ui.select label="Status Kawin" name="marital_status" :error="$errors->first('marital_status')">
+                            <option value="">- Pilih -</option>
+                            @foreach ($maritals as $m)
+                                <option value="{{ $m }}" @selected(old('marital_status') === $m)>{{ $m }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+
                         <x-ui.input label="Telepon" name="phone" value="{{ old('phone') }}" :error="$errors->first('phone')" />
                         <x-ui.input label="Email" name="email" type="email" value="{{ old('email') }}"
                             :error="$errors->first('email')" />
@@ -81,4 +107,30 @@
 
         </div>
     </div>
+
+    {{-- JS toggle religion_other --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const religionSelect = document.querySelector('select[name="religion"]');
+            const religionOther = document.querySelector('input[name="religion_other"]');
+
+            if (!religionSelect || !religionOther) return;
+
+            const syncReligionOther = () => {
+                const val = religionSelect.value;
+
+                if (val === 'Lainnya') {
+                    religionOther.disabled = false;
+                    religionOther.required = true;
+                } else {
+                    religionOther.value = '';
+                    religionOther.required = false;
+                    religionOther.disabled = true;
+                }
+            };
+
+            syncReligionOther();
+            religionSelect.addEventListener('change', syncReligionOther);
+        });
+    </script>
 </x-app-layout>

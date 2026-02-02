@@ -8,7 +8,6 @@
 
     $account = $teacher->user;
 
-    // NEW: Agama + Status Kawin (rapihin display)
     $religionText = $teacher->religion ?? '-';
     if (($teacher->religion ?? null) === 'Lainnya') {
         $religionText = trim((string) ($teacher->religion_other ?? ''));
@@ -28,7 +27,7 @@
                 </div>
 
                 <p class="text-sm text-gray-500 mt-1">
-                    {{ $teacher->full_name }} • NIP {{ $teacher->nip }}
+                    {{ $teacher->full_name }} - <span class="font-semibold text-gray-900">{{ $teacher->nip }}</span>
                 </p>
             </div>
 
@@ -74,7 +73,7 @@
             @endif
 
             {{-- Ringkasan --}}
-            <x-ui.card title="Ringkasan" subtitle="Informasi singkat guru.">
+            <x-ui.card title="Ringkasan" subtitle="Ringkasan informasi data guru">
                 <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                     <div>
                         <div class="text-xs text-gray-500">NIP</div>
@@ -109,7 +108,7 @@
             </x-ui.card>
 
             {{-- Akun Login --}}
-            <x-ui.card title="Akun Login" subtitle="Akun untuk mengakses SIM (username dan password awal = NIP).">
+            <x-ui.card title="Akun Login" subtitle="Informasi akun login guru untuk mengakses sistem">
                 @if (!$isAdminOrOperator)
                     <div class="text-sm text-gray-600">
                         Hanya admin/operator yang dapat mengelola akun login.
@@ -155,17 +154,20 @@
                         </div>
 
                         <div class="mt-4 text-sm text-gray-600">
-                            Guru login menggunakan <span class="font-semibold">NIP</span>.
+                            Guru login menggunakan <span class="font-semibold">NIP</span>
                             @if ($account->must_change_password)
-                                Saat ini masih <span class="font-semibold">wajib ganti password</span> saat login
-                                berikutnya.
+                                dan saat ini masih <span class="font-semibold">wajib ganti password</span> saat login
+                                berikutnya
+                            @else
+                                dan saat ini <span class="font-semibold">tidak wajib ganti password</span> saat login
+                                berikutnya
                             @endif
                         </div>
 
                         {{-- Kelola akun --}}
                         <div class="mt-6 border-t border-gray-200 pt-4">
                             <h4 class="text-sm font-semibold text-gray-900">Kelola Akun</h4>
-                            <p class="text-xs text-gray-500 mt-1">Aksi ini hanya untuk admin/operator.</p>
+                            <p class="text-xs text-gray-500 mt-1">Kelola aktivasi dan keamanan akun guru</p>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 
@@ -190,8 +192,7 @@
                                     </form>
 
                                     <div class="text-xs text-gray-500 mt-2">
-                                        Catatan: akun nonaktif akan otomatis logout saat mencoba akses (middleware <span
-                                            class="font-semibold">active</span>).
+                                        Catatan: akun nonaktif akan otomatis logout saat mencoba akses
                                     </div>
                                 </div>
 
@@ -210,19 +211,14 @@
                                     </form>
 
                                     <div class="text-xs text-gray-500 mt-2">
-                                        Berguna jika guru lupa password tapi belum sempat direset.
+                                        Catatan: jika guru lupa password tapi belum sempat direset
                                     </div>
                                 </div>
 
                                 {{-- Reset Password Manual --}}
-                                <div class="md:col-span-1">
-                                    <div class="text-xs text-gray-500 mb-1">Reset Password</div>
-                                    <div class="text-xs text-gray-500">
-                                        Set password baru manual, lalu guru wajib ganti saat login berikutnya.
-                                    </div>
-                                </div>
-
                                 <div class="md:col-span-3">
+                                    <div class="text-xs text-gray-500 mb-1">Reset Password</div>
+
                                     <div class="mt-2 border border-gray-200 rounded-xl p-4 bg-gray-50">
                                         <form method="POST"
                                             action="{{ route('teachers.account.reset-password', $teacher) }}"
@@ -255,14 +251,15 @@
 
                         {{-- Template pesan siap copy --}}
                         <div class="mt-6 border-t border-gray-200 pt-4">
-                            <h4 class="text-sm font-semibold text-gray-900">Template Pesan untuk Guru</h4>
-                            <p class="text-xs text-gray-500 mt-1">Copy-paste pesan berikut ke WhatsApp/Chat internal.
+                            <h4 class="text-sm font-semibold text-gray-900">Template Informasi Akun Guru</h4>
+                            <p class="text-xs text-gray-500 mt-1">Gunakan template berikut untuk menginformasikan akun
+                                login guru
                             </p>
 
                             @php
                                 $templateFormal =
                                     "Yth. Bapak/Ibu {$teacher->full_name},\n\n" .
-                                    "Akun SIM sekolah Anda sudah dibuat.\n" .
+                                    "Akun Sistem Informasi Manajemen sekolah Anda sudah dibuat.\n" .
                                     "Username: {$account->username} (NIP)\n" .
                                     "Silakan login melalui aplikasi, lalu ganti password setelah berhasil masuk.\n\n" .
                                     'Terima kasih.';
@@ -315,9 +312,8 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                             </div>
 
                             <div class="md:col-span-12 text-xs text-gray-500">
-                                Username & password awal akan menggunakan NIP:
-                                <span class="font-semibold">{{ $teacher->nip }}</span>.
-                                Guru akan diminta mengganti password saat login pertama.
+                                Username & password awal akan menggunakan NIP
+                                <span class="font-semibold">{{ $teacher->nip }}</span>
                             </div>
                         </form>
                     @endif
@@ -332,6 +328,11 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                             <div>
                                 <dt class="text-xs text-gray-500">Nama Lengkap</dt>
                                 <dd class="mt-1 font-semibold text-gray-900">{{ $teacher->full_name }}</dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">NIP</dt>
+                                <dd class="mt-1 font-semibold text-gray-900">{{ $teacher->nip }}</dd>
                             </div>
 
                             <div>
@@ -357,16 +358,19 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                                 </dd>
                             </div>
 
-                            {{-- NEW --}}
                             <div>
                                 <dt class="text-xs text-gray-500">Agama</dt>
                                 <dd class="mt-1 text-gray-900">{{ $religionText }}</dd>
                             </div>
 
-                            {{-- NEW --}}
                             <div>
                                 <dt class="text-xs text-gray-500">Status Kawin</dt>
                                 <dd class="mt-1 text-gray-900">{{ $maritalText }}</dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-xs text-gray-500">Status Kepegawaian</dt>
+                                <dd class="mt-1 text-gray-900">{{ $teacher->employment_status ?? '-' }}</dd>
                             </div>
 
                             <div>
@@ -388,7 +392,7 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                 </div>
 
                 <div>
-                    <x-ui.card title="Wali Kelas" subtitle="Riwayat penugasan wali kelas (jika ada).">
+                    <x-ui.card title="Wali Kelas" subtitle="Riwayat penugasan wali kelas">
                         <div class="space-y-3 text-sm text-gray-700">
                             @forelse($teacher->homeroomAssignments as $ha)
                                 <div class="border border-gray-200 rounded-lg p-3">
@@ -410,7 +414,7 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                 $canManageDocs = $user->can('uploadDocument', $teacher);
             @endphp
 
-            <x-ui.card title="Dokumen" subtitle="Berkas yang terlampir untuk guru.">
+            <x-ui.card title="Dokumen" subtitle="Pendataan dokumen pendukung guru">
                 <x-ui.table>
                     <x-slot:head>
                         <tr>
@@ -501,14 +505,13 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                 @if ($canManageDocs)
                     <div id="dokumen-upload" class="mt-6 border border-gray-200 rounded-xl bg-gray-50 p-6">
                         <h4 class="text-base font-semibold text-gray-900">Upload Dokumen</h4>
-                        <p class="text-sm text-gray-500 mt-1">PDF/JPG/PNG maksimal 5MB.</p>
 
                         <form method="POST" action="{{ route('teachers.documents.store', $teacher) }}"
                             enctype="multipart/form-data" class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
                             @csrf
 
                             <div class="md:col-span-4">
-                                <x-ui.select label="Jenis Dokumen (opsional)" name="document_type_id">
+                                <x-ui.select label="Jenis Dokumen" name="document_type_id">
                                     <option value="">- Pilih -</option>
                                     @foreach ($documentTypes ?? [] as $dt)
                                         <option value="{{ $dt->id }}">{{ $dt->name }}</option>
@@ -517,7 +520,7 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                             </div>
 
                             <div class="md:col-span-4">
-                                <x-ui.input label="Judul (opsional)" name="title"
+                                <x-ui.input label="Judul Dokumen" name="title"
                                     placeholder="Contoh: SK Pengangkatan" />
                             </div>
 
@@ -526,6 +529,7 @@ Silakan login lalu ganti password. Terima kasih.</textarea>
                                     <input type="file" name="file" class="block w-full text-sm text-gray-700"
                                         required />
                                 </x-ui.field>
+                                <p class="text-sm text-gray-500 mt-1">PDF / JPG / PNG maks. 5MB</p>
                             </div>
 
                             <div class="md:col-span-12">

@@ -54,13 +54,20 @@ class StaffController extends BaseController
             'birth_place' => ['nullable','string','max:100'],
             'birth_date' => ['nullable','date'],
 
+            'religion' => ['nullable', Rule::in(['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu','Lainnya'])],
+            'religion_other' => ['nullable','string','max:80'],
+            'marital_status' => ['nullable', Rule::in(['Kawin','Belum Kawin','Cerai Hidup','Cerai Mati'])],
+
             'phone' => ['nullable','string','max:30'],
             'email' => ['nullable','email','max:120'],
-
             'address' => ['nullable','string'],
             'employment_status' => ['nullable','string','max:50'],
             'is_active' => ['nullable','boolean'],
         ]);
+
+        if (($data['religion'] ?? null) !== 'Lainnya') {
+            $data['religion_other'] = null;
+        }
 
         Staff::create([
             ...$data,
@@ -98,13 +105,20 @@ class StaffController extends BaseController
             'birth_place' => ['nullable','string','max:100'],
             'birth_date' => ['nullable','date'],
 
+            'religion' => ['nullable', Rule::in(['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu','Lainnya'])],
+            'religion_other' => ['nullable','string','max:80'],
+            'marital_status' => ['nullable', Rule::in(['Kawin','Belum Kawin','Cerai Hidup','Cerai Mati'])],
+
             'phone' => ['nullable','string','max:30'],
             'email' => ['nullable','email','max:120'],
-
             'address' => ['nullable','string'],
             'employment_status' => ['nullable','string','max:50'],
             'is_active' => ['nullable','boolean'],
         ]);
+
+        if (($data['religion'] ?? null) !== 'Lainnya') {
+            $data['religion_other'] = null;
+        }
 
         $staff->fill($data);
         $staff->updated_by = $request->user()->id;

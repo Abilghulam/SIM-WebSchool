@@ -60,7 +60,8 @@
                         </a>
 
                         <div class="text-sm text-gray-500 ms-auto">
-                            Total: <span class="font-semibold text-gray-900">{{ $staffs->total() }}</span>
+                            <span class="font-semibold text-gray-900">{{ $staffs->total() }}</span> Tenaga Administrasi
+                            Sekolah
                         </div>
                     </div>
                 </form>
