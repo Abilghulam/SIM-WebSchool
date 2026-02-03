@@ -125,94 +125,102 @@
 
             <x-ui.flash />
 
-            {{-- STAT CARDS (klik-able, modern hover) --}}
+            {{-- STAT CARDS (ukuran konsisten + chevron sejajar value) --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                <a href="{{ route('students.index') }}" class="block group">
-                    <x-ui.card title="Siswa Aktif" subtitle="Klik untuk lihat data siswa">
-                        <div class="flex items-end justify-between gap-3">
-                            <div class="text-3xl font-bold text-gray-900">{{ (int) ($stats['students'] ?? 0) }}</div>
-                            <div
-                                class="text-xs text-gray-500 group-hover:text-gray-700 transition inline-flex items-center gap-1">
-                                <span>Lihat</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </x-ui.card>
-                </a>
 
-                <a href="{{ route('teachers.index') }}" class="block group">
-                    <x-ui.card title="Guru Aktif" subtitle="Klik untuk lihat data guru">
-                        <div class="flex items-end justify-between gap-3">
-                            <div class="text-3xl font-bold text-gray-900">{{ (int) ($stats['teachers'] ?? 0) }}</div>
-                            <div
-                                class="text-xs text-gray-500 group-hover:text-gray-700 transition inline-flex items-center gap-1">
-                                <span>Lihat</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </x-ui.card>
-                </a>
+                @php
+                    // kalau class navy belum ada, ganti ke indigo-* (smooth)
+                    $iconWrap = 'rounded-xl bg-navy-50 text-navy-600 ring-1 ring-navy-100';
+                    $subClass = 'text-[11px] leading-4 text-gray-500 line-clamp-2'; // dipaksa max 2 baris
+                    $cardClass = 'min-h-[150px]'; // tweak: 140-170 sesuai selera
+                    $chevClass = 'text-gray-400 group-hover:text-navy-600 transition';
+                @endphp
 
-                <a href="{{ route('staff.index') }}" class="block group">
-                    <x-ui.card title="TAS Aktif" subtitle="Klik untuk lihat data TAS">
-                        <div class="flex items-end justify-between gap-3">
-                            <div class="text-3xl font-bold text-gray-900">{{ (int) ($stats['staff'] ?? 0) }}</div>
-                            <div
-                                class="text-xs text-gray-500 group-hover:text-gray-700 transition inline-flex items-center gap-1">
-                                <span>Lihat</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </x-ui.card>
-                </a>
+                @php
+                    $cards = [
+                        [
+                            'href' => route('students.index'),
+                            'title' => 'Siswa Aktif',
+                            'subtitle' => 'Klik untuk lihat semua data siswa',
+                            'value' => (int) ($stats['students'] ?? 0),
+                            'icon' => 'user-round',
+                            'valueClass' => 'text-3xl',
+                        ],
+                        [
+                            'href' => route('teachers.index'),
+                            'title' => 'Guru Aktif',
+                            'subtitle' => 'Klik untuk lihat semua data guru',
+                            'value' => (int) ($stats['teachers'] ?? 0),
+                            'icon' => 'users-round',
+                            'valueClass' => 'text-3xl',
+                        ],
+                        [
+                            'href' => route('staff.index'),
+                            'title' => 'TAS Aktif',
+                            'subtitle' => 'Klik untuk lihat semua data TAS',
+                            'value' => (int) ($stats['staff'] ?? 0),
+                            'icon' => 'user-star',
+                            'valueClass' => 'text-3xl',
+                        ],
+                        [
+                            'href' => route('classrooms.index'),
+                            'title' => 'Jumlah Kelas',
+                            'subtitle' => 'Klik untuk lihat struktur kelas sekolah',
+                            'value' => (int) ($stats['classrooms'] ?? 0),
+                            'icon' => 'school',
+                            'valueClass' => 'text-3xl',
+                        ],
+                        [
+                            'href' => route('school-years.index'),
+                            'title' => 'Periode Aktif',
+                            'subtitle' => 'Klik untuk kelola tahun ajaran',
+                            'value' => (string) ($stats['activeSchoolYear'] ?? '-'),
+                            'icon' => 'calendar-check-2',
+                            'valueClass' => 'text-lg',
+                        ],
+                    ];
+                @endphp
 
-                <a href="{{ route('classrooms.index') }}" class="block group">
-                    <x-ui.card title="Jumlah Kelas" subtitle="Struktur kelas sekolah">
-                        <div class="flex items-end justify-between gap-3">
-                            <div class="text-3xl font-bold text-gray-900">{{ (int) ($stats['classrooms'] ?? 0) }}</div>
-                            <div
-                                class="text-xs text-gray-500 group-hover:text-gray-700 transition inline-flex items-center gap-1">
-                                <span>Lihat</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </x-ui.card>
-                </a>
+                @foreach ($cards as $c)
+                    <a href="{{ $c['href'] }}" class="block group">
+                        <x-ui.card class="{{ $cardClass }}">
+                            <div class="h-full flex flex-col justify-between gap-4">
 
-                <a href="{{ route('school-years.index') }}" class="block group">
-                    <x-ui.card title="Tahun Ajaran Aktif" subtitle="Kelola tahun ajaran">
-                        <div class="flex items-end justify-between gap-3">
-                            <div class="text-lg font-semibold text-gray-900">
-                                {{ $stats['activeSchoolYear'] ?? '-' }}
+                                {{-- Header (kunci konsistensi tinggi) --}}
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="shrink-0 inline-flex items-center justify-center p-2 {{ $iconWrap }}">
+                                        <x-ui.lucide :name="$c['icon']" :size="18" />
+                                    </span>
+
+                                    <div class="min-w-0">
+                                        <div class="font-semibold text-gray-900 leading-5">
+                                            {{ $c['title'] }}
+                                        </div>
+                                        <div class="{{ $subClass }}">
+                                            {{ $c['subtitle'] }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Footer: value + chevron sejajar --}}
+                                <div class="flex items-end justify-between">
+                                    <div class="{{ $c['valueClass'] }} font-bold text-gray-900">
+                                        {{ $c['value'] }}
+                                    </div>
+
+                                    <span
+                                        class="inline-flex items-center justify-center rounded-lg border border-transparent p-1 group-hover:border-navy-100 group-hover:bg-navy-50 transition">
+                                        <x-ui.lucide name="chevron-right" :size="22"
+                                            class="{{ $chevClass }}" />
+                                    </span>
+                                </div>
+
                             </div>
-                            <div
-                                class="text-xs text-gray-500 group-hover:text-gray-700 transition inline-flex items-center gap-1">
-                                <span>Kelola</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </x-ui.card>
-                </a>
+                        </x-ui.card>
+                    </a>
+                @endforeach
+
             </div>
 
             {{-- HERO STRIP: KPI mini + CTA cepat (Ringkasan & Aksi Cepat vertikal) --}}
