@@ -266,40 +266,252 @@
                         @endif
                     </x-ui.card>
 
-                    <x-ui.card title="Aksi Cepat" subtitle="Shortcut untuk pekerjaan harian.">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {{-- AKSI UTAMA (Icon Tiles) --}}
+                    <x-ui.card title="Aksi Utama" subtitle="Pintasan kerja yang paling sering dipakai.">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             @if ($isAdminOrOperator)
-                                <a href="{{ route('students.create') }}">
-                                    <x-ui.button class="w-full">+ Tambah Siswa</x-ui.button>
+                                {{-- Tambah Siswa --}}
+                                <a href="{{ route('students.create') }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide user-round --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-user-round">
+                                                <circle cx="12" cy="8" r="5" />
+                                                <path d="M20 21a8 8 0 0 0-16 0" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            {{-- chevron-right --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Tambah Siswa</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Input data siswa baru</div>
+                                    </div>
                                 </a>
 
-                                <a href="{{ route('teachers.create') }}">
-                                    <x-ui.button variant="secondary" class="w-full">+ Tambah Guru</x-ui.button>
+                                {{-- Tambah Guru --}}
+                                <a href="{{ route('teachers.create') }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide users-round --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-users-round">
+                                                <path d="M18 21a8 8 0 0 0-16 0" />
+                                                <circle cx="10" cy="8" r="5" />
+                                                <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Tambah Guru</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Input data guru baru</div>
+                                    </div>
                                 </a>
 
-                                <a href="{{ route('staff.create') }}">
-                                    <x-ui.button variant="secondary" class="w-full">+ Tambah TAS</x-ui.button>
+                                {{-- Tambah TAS --}}
+                                <a href="{{ route('staff.create') }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide user-star --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-user-star">
+                                                <path
+                                                    d="M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z" />
+                                                <path d="M8 15H7a4 4 0 0 0-4 4v2" />
+                                                <circle cx="10" cy="7" r="4" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Tambah TAS</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Input tenaga administrasi sekolah
+                                        </div>
+                                    </div>
                                 </a>
 
-                                <a href="{{ route('enrollments.promote.index') }}">
-                                    <x-ui.button variant="secondary" class="w-full">Promote Siswa</x-ui.button>
+                                {{-- Promote Siswa --}}
+                                <a href="{{ route('enrollments.promote.index') }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide school (dipakai utk akademik/promote) --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-school">
+                                                <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+                                                <path d="M18 5v16" />
+                                                <path d="m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6" />
+                                                <path
+                                                    d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11" />
+                                                <path d="M6 5v16" />
+                                                <circle cx="12" cy="9" r="2" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Promote Siswa</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Naik kelas / pindah kelas</div>
+                                    </div>
                                 </a>
 
-                                <a href="{{ route('homeroom-assignments.index') }}" class="sm:col-span-2">
-                                    <x-ui.button variant="secondary" class="w-full">Atur Wali Kelas</x-ui.button>
+                                {{-- Atur Wali Kelas --}}
+                                <a href="{{ route('homeroom-assignments.index') }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide users-round (dipakai utk penugasan) --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-users-round">
+                                                <path d="M18 21a8 8 0 0 0-16 0" />
+                                                <circle cx="10" cy="8" r="5" />
+                                                <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Atur Wali Kelas</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Penugasan wali per TA</div>
+                                    </div>
                                 </a>
                             @endif
 
                             @can('viewMyClass')
+                                {{-- Siswa Kelas Saya --}}
                                 <a href="{{ route('my-class.index') }}"
-                                    class="{{ $isAdminOrOperator ? '' : 'sm:col-span-2' }}">
-                                    <x-ui.button variant="secondary" class="w-full">Siswa Kelas Saya</x-ui.button>
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5 {{ $isAdminOrOperator ? '' : 'sm:col-span-3' }}">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide school --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-school">
+                                                <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+                                                <path d="M18 5v16" />
+                                                <path d="m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6" />
+                                                <path
+                                                    d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11" />
+                                                <path d="M6 5v16" />
+                                                <circle cx="12" cy="9" r="2" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Siswa Kelas Saya</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Lihat data siswa yang kamu ampu</div>
+                                    </div>
                                 </a>
                             @endcan
 
                             @if (Role::is($user, 'guru', 'wali_kelas') && $user->teacher_id)
-                                <a href="{{ route('teachers.show', $user->teacher_id) }}" class="sm:col-span-2">
-                                    <x-ui.button variant="secondary" class="w-full">Profil Saya</x-ui.button>
+                                {{-- Profil Saya --}}
+                                <a href="{{ route('teachers.show', $user->teacher_id) }}"
+                                    class="group rounded-2xl border border-gray-200 bg-white p-4 hover:bg-gray-50 transition
+                       hover:shadow-sm hover:-translate-y-0.5 sm:col-span-3">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="rounded-xl bg-navy-50 text-navy-600 border border-navy-100 p-2">
+                                            {{-- lucide user-round --}}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-user-round">
+                                                <circle cx="12" cy="8" r="5" />
+                                                <path d="M20 21a8 8 0 0 0-16 0" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="text-gray-400 group-hover:text-navy-600 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-chevron-right">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="font-semibold text-gray-900 leading-tight">Profil Saya</div>
+                                        <div class="text-[11px] text-gray-500 mt-1">Lihat biodata & akun login</div>
+                                    </div>
                                 </a>
                             @endif
                         </div>
