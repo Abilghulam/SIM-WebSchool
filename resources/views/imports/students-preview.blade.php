@@ -2,9 +2,9 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900">Preview Import Siswa</h2>
+                <h2 class="text-xl font-semibold text-gray-900">Preview Import Data Siswa</h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Berikut ringkasan data, contoh baris yang akan diproses, dan daftar error (jika ada).
+                    Preview hasil pengecekan data siswa berdasarkan file yang diunggah
                 </p>
             </div>
 
@@ -19,19 +19,19 @@
             <x-ui.flash />
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <x-ui.card title="Total Baris di File">
+                <x-ui.card title="Total Siswa">
                     <div class="text-3xl font-bold">{{ $result['stats']['total_rows'] }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Jumlah baris data yang terbaca (tanpa header).</div>
+                    <div class="text-xs text-gray-500 mt-1">Baris data siswa yang terbaca</div>
                 </x-ui.card>
 
                 <x-ui.card title="Siap Diproses">
                     <div class="text-3xl font-bold">{{ $result['stats']['valid_rows'] }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Baris yang lolos pengecekan dan bisa disimpan.</div>
+                    <div class="text-xs text-gray-500 mt-1">Baris data siswa yang siap diproses</div>
                 </x-ui.card>
 
-                <x-ui.card title="Perlu Diperbaiki">
+                <x-ui.card title="Perlu Perbaikan">
                     <div class="text-3xl font-bold">{{ $result['stats']['invalid_rows'] }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Baris yang bermasalah dan akan dilewati saat commit.</div>
+                    <div class="text-xs text-gray-500 mt-1">Baris data siswa yang perlu perbaikan</div>
                 </x-ui.card>
 
                 <x-ui.card title="Pengaturan Import">
@@ -53,8 +53,8 @@
                 </x-ui.card>
             </div>
 
-            <x-ui.card title="Contoh Data (maks. 20 baris)"
-                subtitle="Contoh di bawah membantu memastikan format file sudah benar.">
+            <x-ui.card title="Preview Data Siswa"
+                subtitle="Data siswa yang berhasil diproses oleh sistem dan siap disimpan">
                 <div class="overflow-auto">
                     <table class="min-w-full text-sm">
                         <thead class="text-left text-gray-500">
@@ -84,7 +84,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="py-6 text-gray-500">
-                                        Tidak ada contoh data yang bisa ditampilkan (mungkin semua baris bermasalah).
+                                        Tidak ada data siswa yang berhasil diproses
                                     </td>
                                 </tr>
                             @endforelse
@@ -93,15 +93,16 @@
                 </div>
 
                 <div class="text-xs text-gray-500 mt-3">
-                    Catatan: Kelas boleh kosong untuk data awal (misalnya siswa baru terdaftar dan belum dibagi kelas).
+                    Catatan: Tabel di atas menampilkan data siswa berdasarkan file yang diunggah, jika data tidak ada di
+                    tabel maka data tersebut tidak berhasil diproses
                 </div>
             </x-ui.card>
 
-            <x-ui.card title="Daftar Error (maks. 50)"
-                subtitle="Jika ada error, kamu bisa perbaiki file lalu upload ulang.">
+            <x-ui.card title="Preview Error Data Siswa"
+                subtitle="Data siswa yang bermasalah dan perlu perbaikan pada file import">
                 @if (empty($result['errors']))
                     <div class="text-sm text-gray-700">
-                        Tidak ada error. ✅ Data siap disimpan.
+                        Error tidak ditemukan, semua data siswa sudah valid dan siap disimpan
                     </div>
                 @else
                     <div class="space-y-3">

@@ -40,7 +40,7 @@
             <x-ui.card title="Filter" subtitle="Cari dan saring data guru.">
                 <form method="GET" action="{{ route('teachers.index') }}"
                     class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div class="md:col-span-5">
+                    <div class="md:col-span-4">
                         <label class="block text-sm font-medium text-gray-700">Cari</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Nama atau NIP"
                             class="mt-1 block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" />
@@ -50,6 +50,61 @@
                         <x-ui.select label="Status Aktif" name="active">
                             @foreach ($activeOptions as $val => $label)
                                 <option value="{{ $val }}" @selected((string) request('active') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <x-ui.select label="Gender" name="gender">
+                            @foreach ($genderOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('gender') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <x-ui.select label="Status Kepegawaian" name="employment_status">
+                            @foreach ($employmentOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('employment_status') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <x-ui.select label="Akun Login" name="account">
+                            @foreach ($accountOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('account') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <x-ui.select label="Agama" name="religion">
+                            @foreach ($religionOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('religion') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <x-ui.select label="Status Kawin" name="marital_status">
+                            @foreach ($maritalOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('marital_status') === (string) $val)>{{ $label }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    {{-- opsional (Teacher only) --}}
+                    <div class="md:col-span-3">
+                        <x-ui.select label="Wajib Ganti Password" name="must_change_password">
+                            @foreach ($mustChangeOptions as $val => $label)
+                                <option value="{{ $val }}" @selected((string) request('must_change_password') === (string) $val)>{{ $label }}
                                 </option>
                             @endforeach
                         </x-ui.select>

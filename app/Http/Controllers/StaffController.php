@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Routing\Controller as BaseController;
 
@@ -20,20 +21,104 @@ class StaffController extends BaseController
 
         $q = Staff::query()->visibleTo($request->user());
 
+        // ===== Filters =====
         if ($request->filled('active')) {
             $q->where('is_active', (bool) $request->boolean('active'));
+        }
+
+        if ($request->filled('gender')) {
+            $q->where('gender', $request->string('gender')->toString()); // L / P
+        }
+
+        if ($request->filled('religion')) {
+            $q->where('religion', $request->string('religion')->toString());
+        }
+
+        if ($request->filled('marital_status')) {
+            $q->where('marital_status', $request->string('marital_status')->toString());
+        }
+
+        if ($request->filled('employment_status')) {
+            $q->where('employment_status', $request->string('employment_status')->toString());
+        }
+
+        // akun login: has / none
+        if ($request->filled('account')) {
+            $acc = $request->string('account')->toString();
+            if ($acc === 'has') {
+                $q->whereHas('user');
+            } elseif ($acc === 'none') {
+                $q->whereDoesntHave('user');
+            }
         }
 
         if ($request->filled('search')) {
             $s = $request->string('search')->toString();
             $q->where(function ($w) use ($s) {
                 $w->where('full_name', 'like', "%{$s}%")
-                  ->orWhere('nip', 'like', "%{$s}%");
+                ->orWhere('nip', 'like', "%{$s}%");
             });
         }
 
         $staffs = $q->latest()->paginate(15)->withQueryString();
-        return view('staff.index', compact('staffs'));
+
+        // ===== Options (DB-driven) =====
+        $activeOptions = [
+            '' => 'Semua',
+            '1' => 'Aktif',
+            '0' => 'Nonaktif',
+        ];
+
+        $genderOptions = [
+            '' => 'Semua',
+            'L' => 'Laki-laki',
+            'P' => 'Perempuan',
+        ];
+
+        // enum (kalau konsisten sama teachers)
+        $religionOptions = [
+            '' => 'Semua',
+            'Islam' => 'Islam',
+            'Kristen' => 'Kristen',
+            'Katolik' => 'Katolik',
+            'Hindu' => 'Hindu',
+            'Buddha' => 'Buddha',
+            'Konghucu' => 'Konghucu',
+            'Lainnya' => 'Lainnya',
+        ];
+
+        $maritalOptions = [
+            '' => 'Semua',
+            'Kawin' => 'Kawin',
+            'Belum Kawin' => 'Belum Kawin',
+            'Cerai Hidup' => 'Cerai Hidup',
+            'Cerai Mati' => 'Cerai Mati',
+        ];
+
+        $accountOptions = [
+            '' => 'Semua',
+            'has' => 'Punya Akun',
+            'none' => 'Belum Punya Akun',
+        ];
+
+        // ambil dari DB (distinct)
+        $employmentOptions = Staff::query()
+            ->whereNotNull('employment_status')
+            ->where('employment_status', '!=', '')
+            ->distinct()
+            ->orderBy('employment_status')
+            ->pluck('employment_status', 'employment_status')
+            ->prepend('Semua', '');
+
+        return view('staff.index', compact(
+            'staffs',
+            'activeOptions',
+            'genderOptions',
+            'religionOptions',
+            'maritalOptions',
+            'accountOptions',
+            'employmentOptions',
+        ));
     }
 
     public function create()

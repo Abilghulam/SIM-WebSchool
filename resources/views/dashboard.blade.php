@@ -228,33 +228,38 @@
                 {{-- KIRI: 2 card stack (atas-bawah) --}}
                 <div class="lg:col-span-2 space-y-6">
                     <x-ui.card title="Ringkasan Hari Ini" subtitle="Snapshot kondisi sistem & akademik.">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="rounded-xl border border-gray-200 p-3">
-                                <div class="text-xs text-gray-500">Enrollment aktif</div>
-                                <div class="mt-1 text-2xl font-bold text-gray-900">
-                                    {{ (int) ($kpi['enrollmentsActive'] ?? 0) }}
-                                </div>
+                        @php
+                            $summaryItemClass = 'rounded-2xl border border-gray-200 bg-white px-4 py-4';
+                            $labelClass = 'text-[11px] text-gray-500 truncate';
+                            $valueClass = 'mt-1 text-2xl font-bold text-gray-900';
+                        @endphp
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                            <div class="{{ $summaryItemClass }}">
+                                <div class="{{ $labelClass }}" title="Enrollment aktif">Enrollment aktif</div>
+                                <div class="{{ $valueClass }}">{{ (int) ($kpi['enrollmentsActive'] ?? 0) }}</div>
                             </div>
 
-                            <div class="rounded-xl border border-gray-200 p-3">
-                                <div class="text-xs text-gray-500">Kelas sudah wali</div>
-                                <div class="mt-1 text-2xl font-bold text-gray-900">
-                                    {{ (int) ($kpi['classesWithHomeroom'] ?? 0) }}
-                                </div>
+                            <div class="{{ $summaryItemClass }}">
+                                <div class="{{ $labelClass }}" title="Kelas ada wali">Kelas ada wali</div>
+                                <div class="{{ $valueClass }}">{{ (int) ($kpi['classesWithHomeroom'] ?? 0) }}</div>
                             </div>
 
-                            <div class="rounded-xl border border-gray-200 p-3">
-                                <div class="text-xs text-gray-500">Kelas belum wali</div>
-                                <div class="mt-1 text-2xl font-bold text-gray-900">
-                                    {{ (int) $homeroomNotAssigned }}
-                                </div>
+                            <div class="{{ $summaryItemClass }}">
+                                <div class="{{ $labelClass }}" title="Kelas tanpa wali">Kelas tanpa wali</div>
+                                <div class="{{ $valueClass }}">{{ (int) $homeroomNotAssigned }}</div>
                             </div>
 
-                            <div class="rounded-xl border border-gray-200 p-3">
-                                <div class="text-xs text-gray-500">Akun wajib ganti password</div>
-                                <div class="mt-1 text-2xl font-bold text-gray-900">
-                                    {{ (int) $mustChangePasswordCount }}
+                            <div class="{{ $summaryItemClass }}">
+                                <div class="{{ $labelClass }}" title="Wajib ganti password">Wajib ganti password
                                 </div>
+                                <div class="{{ $valueClass }}">{{ (int) $mustChangePasswordCount }}</div>
+                            </div>
+
+                            <div class="{{ $summaryItemClass }}">
+                                <div class="{{ $labelClass }}" title="Guru tanpa akun login">Guru tanpa akun login
+                                </div>
+                                <div class="{{ $valueClass }}">{{ (int) $teachersWithoutAccount }}</div>
                             </div>
                         </div>
 

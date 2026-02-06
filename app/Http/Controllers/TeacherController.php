@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class TeacherController extends BaseController
@@ -21,23 +22,89 @@ class TeacherController extends BaseController
     {
         $this->authorize('viewAny', Teacher::class);
 
-        $q = Teacher::query()->visibleTo($request->user());
+        $q = Teacher::query(); // kalau ada scope visibleTo untuk teacher, pakai itu
 
         if ($request->filled('active')) {
             $q->where('is_active', (bool) $request->boolean('active'));
+        }
+
+        if ($request->filled('gender')) {
+            $q->where('gender', $request->string('gender')->toString());
+        }
+
+        if ($request->filled('religion')) {
+            $q->where('religion', $request->string('religion')->toString());
+        }
+
+        if ($request->filled('marital_status')) {
+            $q->where('marital_status', $request->string('marital_status')->toString());
+        }
+
+        if ($request->filled('employment_status')) {
+            $q->where('employment_status', $request->string('employment_status')->toString());
+        }
+
+        if ($request->filled('account')) {
+            $acc = $request->string('account')->toString();
+            if ($acc === 'has') $q->whereHas('user');
+            if ($acc === 'none') $q->whereDoesntHave('user');
+        }
+
+        // opsional: wajib ganti password (butuh relasi user)
+        if ($request->filled('must_change_password')) {
+            $val = $request->string('must_change_password')->toString(); // 1 / 0
+            if ($val === '1') {
+                $q->whereHas('user', fn($u) => $u->where('must_change_password', true));
+            } elseif ($val === '0') {
+                $q->whereHas('user', fn($u) => $u->where('must_change_password', false));
+            }
         }
 
         if ($request->filled('search')) {
             $s = $request->string('search')->toString();
             $q->where(function ($w) use ($s) {
                 $w->where('full_name', 'like', "%{$s}%")
-                    ->orWhere('nip', 'like', "%{$s}%");
+                ->orWhere('nip', 'like', "%{$s}%");
             });
         }
 
         $teachers = $q->latest()->paginate(15)->withQueryString();
 
-        return view('teachers.index', compact('teachers'));
+        // options
+        $activeOptions = ['' => 'Semua', '1' => 'Aktif', '0' => 'Nonaktif'];
+        $genderOptions = ['' => 'Semua', 'L' => 'Laki-laki', 'P' => 'Perempuan'];
+        $religionOptions = [
+            '' => 'Semua',
+            'Islam' => 'Islam',
+            'Kristen' => 'Kristen',
+            'Katolik' => 'Katolik',
+            'Hindu' => 'Hindu',
+            'Buddha' => 'Buddha',
+            'Konghucu' => 'Konghucu',
+            'Lainnya' => 'Lainnya',
+        ];
+        $maritalOptions = ['' => 'Semua', 'Kawin' => 'Kawin', 'Belum Kawin' => 'Belum Kawin', 'Cerai Hidup' => 'Cerai Hidup', 'Cerai Mati' => 'Cerai Mati'];
+        $accountOptions = ['' => 'Semua', 'has' => 'Punya Akun', 'none' => 'Belum Punya Akun'];
+        $mustChangeOptions = ['' => 'Semua', '1' => 'Wajib Ganti', '0' => 'Tidak Wajib'];
+
+        $employmentOptions = Teacher::query()
+            ->whereNotNull('employment_status')
+            ->where('employment_status', '!=', '')
+            ->distinct()
+            ->orderBy('employment_status')
+            ->pluck('employment_status', 'employment_status')
+            ->prepend('Semua', '');
+
+        return view('teachers.index', compact(
+            'teachers',
+            'activeOptions',
+            'genderOptions',
+            'religionOptions',
+            'maritalOptions',
+            'accountOptions',
+            'mustChangeOptions',
+            'employmentOptions'
+        ));
     }
 
     public function create()

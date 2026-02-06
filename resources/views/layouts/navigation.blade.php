@@ -113,8 +113,8 @@
                             </x-slot>
 
                             <x-slot name="content">
-                                <x-dropdown-link :href="route('enrollments.promote.index')">Promote Siswa</x-dropdown-link>
-                                <x-dropdown-link :href="route('enrollments.promotions.index')">Log Promote</x-dropdown-link>
+                                <x-dropdown-link :href="route('enrollments.promote.index')">Promosi Siswa</x-dropdown-link>
+                                <x-dropdown-link :href="route('enrollments.promotions.index')">Aktivitas Promosi</x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
                     @endif
