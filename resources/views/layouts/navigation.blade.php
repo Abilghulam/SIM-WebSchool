@@ -91,7 +91,7 @@
 
                             <x-slot name="content">
                                 <x-dropdown-link :href="route('school-years.index')">Tahun Ajaran</x-dropdown-link>
-                                <x-dropdown-link :href="route('majors.index')">Jurusan</x-dropdown-link>
+                                <x-dropdown-link :href="route('majors.index')">Program Keahlian</x-dropdown-link>
                                 <x-dropdown-link :href="route('classrooms.index')">Kelas</x-dropdown-link>
                                 <x-dropdown-link :href="route('homeroom-assignments.index')">Wali Kelas</x-dropdown-link>
                             </x-slot>
@@ -493,7 +493,7 @@
                     Tahun Ajaran
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('majors.index')" :active="request()->routeIs('majors.*')">
-                    Jurusan
+                    Program Keahlian
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('classrooms.index')" :active="request()->routeIs('classrooms.*')">
                     Kelas

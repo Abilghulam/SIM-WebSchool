@@ -11,7 +11,7 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Master Kelas</h2>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Kelas</h2>
                 <p class="text-sm text-gray-500 mt-1">Kelola kelas berdasarkan jurusan dan tingkat.</p>
             </div>
 
@@ -60,7 +60,7 @@
                             <x-ui.button variant="secondary">Reset</x-ui.button>
                         </a>
                         <div class="ms-auto text-sm text-gray-500">
-                            Total: <span class="font-semibold text-gray-900">{{ $classrooms->total() }}</span>
+                            <span class="font-semibold text-gray-900">{{ $classrooms->total() }}</span> Kelas
                         </div>
                     </div>
                 </form>

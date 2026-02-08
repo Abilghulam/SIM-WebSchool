@@ -4,6 +4,12 @@
     // biar aman kalau controller belum kirim objectnya
     $fromYearId = $fromYearId ?? request('from_year_id');
     $toYearId = $toYearId ?? request('to_year_id');
+
+    $totalFromStudents = (int) ($totalFromStudents ?? 0);
+    $graduateCount = (int) ($graduateCount ?? 0);
+
+    // Diproyeksikan naik kelas = aktif - lulus
+    $promotedCount = max(0, $totalFromStudents - $graduateCount);
 @endphp
 
 <x-app-layout>
@@ -14,8 +20,7 @@
                     Promosi Tahun Ajaran
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Naik kelas otomatis berdasarkan mapping kelas asal → kelas tujuan (grade + 1). Kelas 12 otomatis
-                    diluluskan.
+                    Sistem kenaikan kelas otomatis berdasarkan mapping kelas asal dan tujuan
                 </p>
             </div>
         </div>
@@ -38,7 +43,7 @@
             @endif
 
             {{-- Filter TA --}}
-            <x-ui.card title="Pilih Tahun Ajaran" subtitle="Tentukan TA sumber (asal) dan TA tujuan (baru).">
+            <x-ui.card title="Pilih Tahun Ajaran" subtitle="Tentukan tahun ajaran asal dan tujuan promosi">
                 <form method="GET" action="{{ route('enrollments.promote.index') }}" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -68,7 +73,7 @@
                                 @endforeach
                             </x-ui.select>
                             <p class="text-xs text-gray-500 mt-1">
-                                Pilih TA tujuan agar mapping otomatis terisi.
+                                Pilih tahun ajaran tujuan agar mapping otomatis terisi
                             </p>
                         </div>
 
@@ -91,8 +96,8 @@
             </x-ui.card>
 
             {{-- Mapping --}}
-            <x-ui.card title="Mapping Kelas (Asal → Tujuan)"
-                subtitle="Kelas tujuan wajib grade + 1 dari kelas asal. Kelas 12 akan diluluskan otomatis.">
+            <x-ui.card title="Mapping Kenaikan Kelas"
+                subtitle="Daftar kelas di tahun ajaran asal dan kelas tujuan beserta proyeksi distribusi siswa berdasarkan mapping otomatis">
                 @if (!$fromYearId || !$toYearId)
                     <div class="text-sm text-gray-600">
                         Pilih TA asal dan TA tujuan terlebih dahulu.
@@ -109,167 +114,173 @@
                         <input type="hidden" name="to_year_id" value="{{ $toYearId }}">
 
                         <div class="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                            <span>TA Asal: <strong class="text-gray-900">{{ $fromYear?->name }}</strong></span>
+                            <span>Tahun Ajaran Asal: <strong
+                                    class="text-gray-900">{{ $fromYear?->name }}</strong></span>
                             <span class="text-gray-300">•</span>
-                            <span>TA Tujuan: <strong class="text-gray-900">{{ $toYear?->name }}</strong></span>
+                            <span>Tahun Ajaran Tujuan: <strong
+                                    class="text-gray-900">{{ $toYear?->name }}</strong></span>
                         </div>
 
                         {{-- PREVIEW --}}
                         <div class="mb-4">
-                            <x-ui.card title="Preview Jumlah Siswa (Sebelum Promosi)"
-                                subtitle="Ringkasan siswa aktif di TA asal dan proyeksi distribusi ke kelas tujuan berdasarkan mapping otomatis.">
-
+                            <x-ui.card title="Preview Jumlah Siswa"
+                                subtitle="Ringkasan siswa aktif di tahun ajaran asal dan proyeksi distribusi berdasarkan mapping otomatis.">
                                 <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700">
                                     <div>
-                                        Total siswa aktif TA asal:
-                                        <x-ui.badge variant="gray">{{ $totalFromStudents ?? 0 }}</x-ui.badge>
+                                        Total siswa aktif:
+                                        <x-ui.badge variant="gray">{{ $totalFromStudents }}</x-ui.badge>
                                     </div>
 
                                     <div class="text-gray-300">•</div>
 
                                     <div>
-                                        Diproyeksikan lulus (kelas 12):
-                                        <x-ui.badge variant="green">{{ $graduateCount ?? 0 }}</x-ui.badge>
+                                        Diproyeksikan naik kelas:
+                                        <x-ui.badge variant="blue">{{ $promotedCount }}</x-ui.badge>
+                                    </div>
+
+                                    <div class="text-gray-300">•</div>
+
+                                    <div>
+                                        Diproyeksikan lulus:
+                                        <x-ui.badge variant="green">{{ $graduateCount }}</x-ui.badge>
                                     </div>
                                 </div>
 
-                                <div class="mt-4">
-                                    <x-ui.table>
-                                        <x-slot:head>
-                                            <tr>
-                                                <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
-                                                <th class="px-6 py-4 text-left font-semibold">Jumlah Siswa</th>
-                                                <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
-                                                <th class="px-6 py-4 text-left font-semibold">Proyeksi di Tujuan</th>
-                                            </tr>
-                                        </x-slot:head>
+                                <x-ui.table>
+                                    <x-slot:head>
+                                        <tr>
+                                            <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
+                                            <th class="px-6 py-4 text-left font-semibold">Jumlah Siswa</th>
+                                            <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
+                                            <th class="px-6 py-4 text-left font-semibold">Proyeksi Tujuan</th>
+                                        </tr>
+                                    </x-slot:head>
 
-                                        @foreach ($fromClassrooms as $c)
-                                            @php
-                                                $countFrom = (int) ($fromCounts[$c->id] ?? 0);
-                                                $toId = $defaultMap[$c->id] ?? null;
+                                    @foreach ($fromClassrooms as $c)
+                                        @php
+                                            $countFrom = (int) ($fromCounts[$c->id] ?? 0);
+                                            $toId = $defaultMap[$c->id] ?? null;
 
-                                                $toClass = $toId ? $toClassrooms->firstWhere('id', $toId) : null;
-                                                $countToProjected = $toId
-                                                    ? (int) ($toProjectedCounts[$toId] ?? 0)
-                                                    : null;
+                                            $toClass = $toId ? $toClassrooms->firstWhere('id', $toId) : null;
+                                            $countToProjected = $toId ? (int) ($toProjectedCounts[$toId] ?? 0) : null;
 
-                                                $isGrade12 = (int) $c->grade_level >= 12;
-                                            @endphp
+                                            $isGrade12 = (int) $c->grade_level >= 12;
+                                        @endphp
 
-                                            <tr class="hover:bg-gray-50">
-                                                <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
-                                                    {{ $c->name }}
-                                                </td>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
+                                                {{ $c->name }}
+                                            </td>
 
-                                                <td class="px-6 py-4">
-                                                    <x-ui.badge variant="gray">{{ $countFrom }}</x-ui.badge>
-                                                </td>
+                                            <td class="px-6 py-4">
+                                                <x-ui.badge variant="gray">{{ $countFrom }}</x-ui.badge>
+                                            </td>
 
-                                                <td class="px-6 py-4 text-gray-700">
-                                                    @if ($isGrade12)
-                                                        <x-ui.badge variant="green">Lulus</x-ui.badge>
-                                                    @else
-                                                        {{ $toClass?->name ?? '-' }}
-                                                    @endif
-                                                </td>
+                                            <td class="px-6 py-4 text-gray-700">
+                                                @if ($isGrade12)
+                                                    <x-ui.badge variant="green">Lulus</x-ui.badge>
+                                                @else
+                                                    {{ $toClass?->name ?? '-' }}
+                                                @endif
+                                            </td>
 
-                                                <td class="px-6 py-4 text-gray-700">
-                                                    @if ($isGrade12)
-                                                        <span class="text-gray-500">-</span>
-                                                    @else
-                                                        <x-ui.badge
-                                                            variant="gray">{{ $countToProjected ?? 0 }}</x-ui.badge>
-                                                        <span class="text-xs text-gray-500 ml-2">
-                                                            (akumulasi dari semua kelas asal yang menuju kelas ini)
-                                                        </span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </x-ui.table>
-                                </div>
+                                            <td class="px-6 py-4 text-gray-700">
+                                                @if ($isGrade12)
+                                                    <span class="text-gray-500">-</span>
+                                                @else
+                                                    <x-ui.badge
+                                                        variant="gray">{{ $countToProjected ?? 0 }}</x-ui.badge>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </x-ui.table>
                             </x-ui.card>
                         </div>
 
-                        <x-ui.table>
-                            <x-slot:head>
-                                <tr>
-                                    <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
-                                    <th class="px-6 py-4 text-left font-semibold">Tingkat</th>
-                                    <th class="px-6 py-4 text-left font-semibold">Jurusan</th>
-                                    <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
-                                    <th class="px-6 py-4 text-left font-semibold">Catatan</th>
-                                </tr>
-                            </x-slot:head>
+                        {{-- Table mapping yang akan dipakai saat proses promosi --}}
+                        <x-ui.card title="Pengaturan Mapping Kelas"
+                            subtitle="Kelas tujuan otomatis terisi berdasarkan kelas asal dan tahun ajaran tujuan">
+                            <x-ui.table>
+                                <x-slot:head>
+                                    <tr>
+                                        <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
+                                        <th class="px-6 py-4 text-left font-semibold">Tingkat</th>
+                                        <th class="px-6 py-4 text-left font-semibold">Jurusan</th>
+                                        <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
+                                        <th class="px-6 py-4 text-left font-semibold">Catatan</th>
+                                    </tr>
+                                </x-slot:head>
 
-                            @foreach ($fromClassrooms as $c)
-                                @php
-                                    $isGrade12 = (int) $c->grade_level >= 12;
-                                    $selected = old("map.$c->id", $defaultMap[$c->id] ?? null);
+                                @foreach ($fromClassrooms as $c)
+                                    @php
+                                        $isGrade12 = (int) $c->grade_level >= 12;
+                                        $selected = old("map.$c->id", $defaultMap[$c->id] ?? null);
 
-                                    // validasi: hanya boleh grade+1
-                                    $allowedTargets = $toClassrooms
-                                        ->where('grade_level', (int) $c->grade_level + 1)
-                                        ->values();
-                                @endphp
+                                        // validasi: hanya boleh grade+1
+                                        $allowedTargets = $toClassrooms
+                                            ->where('grade_level', (int) $c->grade_level + 1)
+                                            ->values();
+                                    @endphp
 
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
-                                        {{ $c->name }}
-                                    </td>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
+                                            {{ $c->name }}
+                                        </td>
 
-                                    <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
-                                        {{ $c->grade_level }}
-                                    </td>
+                                        <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
+                                            {{ $c->grade_level }}
+                                        </td>
 
-                                    <td class="px-6 py-4 text-gray-700">
-                                        {{ $c->major?->name ?? '-' }}
-                                    </td>
+                                        <td class="px-6 py-4 text-gray-700">
+                                            {{ $c->major?->name ?? '-' }}
+                                        </td>
 
-                                    <td class="px-6 py-4">
-                                        @if ($isGrade12)
-                                            <input type="hidden" name="map[{{ $c->id }}]" value="">
-                                            <x-ui.badge variant="green">Lulus</x-ui.badge>
-                                        @else
-                                            <x-ui.select name="map[{{ $c->id }}]" class="w-full">
-                                                <option value="">-- pilih kelas tujuan --</option>
+                                        <td class="px-6 py-4">
+                                            @if ($isGrade12)
+                                                <input type="hidden" name="map[{{ $c->id }}]" value="">
+                                                <x-ui.badge variant="green">Lulus</x-ui.badge>
+                                            @else
+                                                <x-ui.select name="map[{{ $c->id }}]" class="w-full">
+                                                    <option value="">-- pilih kelas tujuan --</option>
 
-                                                @foreach ($allowedTargets as $t)
-                                                    <option value="{{ $t->id }}" @selected((string) $selected === (string) $t->id)>
-                                                        {{ $t->name }} ({{ $t->major?->name ?? '-' }})
-                                                    </option>
-                                                @endforeach
-                                            </x-ui.select>
+                                                    @foreach ($allowedTargets as $t)
+                                                        <option value="{{ $t->id }}"
+                                                            @selected((string) $selected === (string) $t->id)>
+                                                            {{ $t->name }} ({{ $t->major?->name ?? '-' }})
+                                                        </option>
+                                                    @endforeach
+                                                </x-ui.select>
 
-                                            @if ($allowedTargets->isEmpty())
-                                                <div class="text-xs text-red-600 mt-1">
-                                                    Tidak ada kelas tujuan grade {{ (int) $c->grade_level + 1 }} di TA
-                                                    tujuan.
-                                                </div>
+                                                @if ($allowedTargets->isEmpty())
+                                                    <div class="text-xs text-red-600 mt-1">
+                                                        Tidak ada kelas tujuan grade {{ (int) $c->grade_level + 1 }} di
+                                                        TA tujuan.
+                                                    </div>
+                                                @endif
                                             @endif
-                                        @endif
-                                    </td>
+                                        </td>
 
-                                    <td class="px-6 py-4 text-gray-600">
-                                        @if ($isGrade12)
-                                            Otomatis lulus, tidak dibuat enrollment baru.
-                                        @else
-                                            Hanya kelas grade {{ (int) $c->grade_level + 1 }}.
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
+                                        <td class="px-6 py-4 text-gray-600">
+                                            @if ($isGrade12)
+                                                Otomatis lulus, tidak dibuat enrollment baru.
+                                            @else
+                                                Hanya kelas grade {{ (int) $c->grade_level + 1 }}.
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
 
-                            <x-slot:footer>
-                                <div class="flex items-center justify-end gap-2">
-                                    <x-ui.button type="submit" variant="primary"
-                                        onclick="return confirm('Yakin menjalankan promosi? Enrollment TA asal akan dinonaktifkan dan dibuatkan enrollment baru di TA tujuan.')">
-                                        Proses Promosi
-                                    </x-ui.button>
-                                </div>
-                            </x-slot:footer>
-                        </x-ui.table>
+                                <x-slot:footer>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <x-ui.button type="submit" variant="primary"
+                                            onclick="return confirm('Yakin menjalankan promosi? Enrollment TA asal akan dinonaktifkan dan dibuatkan enrollment baru di TA tujuan.')">
+                                            Proses Promosi
+                                        </x-ui.button>
+                                    </div>
+                                </x-slot:footer>
+                            </x-ui.table>
+                        </x-ui.card>
                     </form>
                 @endif
             </x-ui.card>

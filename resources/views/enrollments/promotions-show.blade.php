@@ -11,7 +11,7 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 leading-tight">
-                    Detail Log Promote
+                    Detail Aktivitas Promosi
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
                     {{ $promotion->fromYear?->name ?? '-' }} → {{ $promotion->toYear?->name ?? '-' }}
@@ -68,19 +68,19 @@
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                     <div class="p-4 rounded-xl border border-gray-200">
-                        <div class="text-sm text-gray-500">Total</div>
+                        <div class="text-sm text-gray-500">Total Siswa</div>
                         <div class="text-2xl font-bold text-gray-900">{{ (int) $promotion->total_students }}</div>
                     </div>
                     <div class="p-4 rounded-xl border border-gray-200">
-                        <div class="text-sm text-gray-500">Moved</div>
+                        <div class="text-sm text-gray-500">Naik Kelas</div>
                         <div class="text-2xl font-bold text-gray-900">{{ (int) $promotion->moved_students }}</div>
                     </div>
                     <div class="p-4 rounded-xl border border-gray-200">
-                        <div class="text-sm text-gray-500">Graduated</div>
+                        <div class="text-sm text-gray-500">Lulus</div>
                         <div class="text-2xl font-bold text-gray-900">{{ (int) $promotion->graduated_students }}</div>
                     </div>
                     <div class="p-4 rounded-xl border border-gray-200">
-                        <div class="text-sm text-gray-500">Skipped</div>
+                        <div class="text-sm text-gray-500">Tidak Naik</div>
                         <div class="text-2xl font-bold text-gray-900">{{ (int) $promotion->skipped_students }}</div>
                     </div>
                 </div>
@@ -92,10 +92,10 @@
                         <tr>
                             <th class="px-6 py-4 text-left font-semibold">Kelas Asal</th>
                             <th class="px-6 py-4 text-left font-semibold">Kelas Tujuan</th>
-                            <th class="px-6 py-4 text-right font-semibold">Aktif</th>
-                            <th class="px-6 py-4 text-right font-semibold">Moved</th>
-                            <th class="px-6 py-4 text-right font-semibold">Graduated</th>
-                            <th class="px-6 py-4 text-right font-semibold">Skipped</th>
+                            <th class="px-6 py-4 text-right font-semibold">Siswa Aktif</th>
+                            <th class="px-6 py-4 text-right font-semibold">Naik Kelas</th>
+                            <th class="px-6 py-4 text-right font-semibold">Lulus</th>
+                            <th class="px-6 py-4 text-right font-semibold">Tidak Naik</th>
                         </tr>
                     </x-slot:head>
 
@@ -108,14 +108,14 @@
                             <td class="px-6 py-4 text-gray-900 font-semibold">
                                 {{ $fromName }}
                                 @if ($it->from_grade_level)
-                                    <div class="text-xs text-gray-500 mt-1">Grade: {{ $it->from_grade_level }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Kelas: {{ $it->from_grade_level }}</div>
                                 @endif
                             </td>
 
                             <td class="px-6 py-4 text-gray-900 font-semibold">
                                 {{ $toName }}
                                 @if ($it->to_grade_level)
-                                    <div class="text-xs text-gray-500 mt-1">Grade: {{ $it->to_grade_level }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Kelas: {{ $it->to_grade_level }}</div>
                                 @endif
                             </td>
 

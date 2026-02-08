@@ -68,7 +68,7 @@
                     </div>
 
                     <div class="md:col-span-12 text-sm text-gray-500">
-                        Catatan: Jika kelas sudah punya wali kelas, maka akan otomatis diganti (update).
+                        Catatan: Pilih kelas dan guru yang belum memiliki penugasan wali kelas pada tahun ajaran aktif
                     </div>
                 </form>
             </x-ui.card>

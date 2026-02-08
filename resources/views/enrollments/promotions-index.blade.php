@@ -12,7 +12,7 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Log Promote</h2>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Aktivitas Promosi</h2>
                 <p class="text-sm text-gray-500 mt-1">Riwayat eksekusi promote siswa (audit trail).</p>
             </div>
 
@@ -38,7 +38,7 @@
             @endif
 
             {{-- Filter --}}
-            <x-ui.card title="Filter" subtitle="Cari dan saring log promote.">
+            <x-ui.card title="Filter" subtitle="Cari dan saring aktivitas promosi siswa">
                 <form method="GET" action="{{ route('enrollments.promotions.index') }}"
                     class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
@@ -48,7 +48,7 @@
                     </div>
 
                     <div class="md:col-span-3">
-                        <x-ui.select label="TA Asal" name="from_school_year_id">
+                        <x-ui.select label="Tahun Ajaran Asal" name="from_school_year_id">
                             <option value="">Semua</option>
                             @foreach ($schoolYears as $sy)
                                 <option value="{{ $sy->id }}" @selected((string) request('from_school_year_id') === (string) $sy->id)>
@@ -61,7 +61,7 @@
                     </div>
 
                     <div class="md:col-span-3">
-                        <x-ui.select label="TA Tujuan" name="to_school_year_id">
+                        <x-ui.select label="Tahun Ajaran Tujuan" name="to_school_year_id">
                             <option value="">Semua</option>
                             @foreach ($schoolYears as $sy)
                                 <option value="{{ $sy->id }}" @selected((string) request('to_school_year_id') === (string) $sy->id)>
@@ -97,25 +97,30 @@
             </x-ui.card>
 
             {{-- Table --}}
-            <x-ui.card title="Riwayat Promote"
-                subtitle="Klik Detail untuk melihat rincian mapping dan hasil per kelas.">
+            <x-ui.card title="Riwayat Promote" subtitle="Klik baris pada table untuk melihat detail Riwayat promosi.">
                 <x-ui.table>
                     <x-slot:head>
                         <tr>
                             <th class="px-6 py-4 text-left font-semibold">Waktu</th>
-                            <th class="px-6 py-4 text-left font-semibold">Dari → Ke</th>
+                            <th class="px-6 py-4 text-left font-semibold">Asal → Tujuan</th>
                             <th class="px-6 py-4 text-left font-semibold">Eksekutor</th>
                             <th class="px-6 py-4 text-left font-semibold">Status</th>
-                            <th class="px-6 py-4 text-right font-semibold">Total</th>
-                            <th class="px-6 py-4 text-right font-semibold">Moved</th>
-                            <th class="px-6 py-4 text-right font-semibold">Graduated</th>
-                            <th class="px-6 py-4 text-right font-semibold">Skipped</th>
-                            <th class="px-6 py-4 text-right font-semibold">Aksi</th>
+                            <th class="px-6 py-4 text-right font-semibold">Total Siswa</th>
+                            <th class="px-6 py-4 text-right font-semibold">Naik Kelas</th>
+                            <th class="px-6 py-4 text-right font-semibold">Lulus</th>
+                            <th class="px-6 py-4 text-right font-semibold">Tidak Naik</th>
                         </tr>
                     </x-slot:head>
 
                     @forelse($promotions as $p)
-                        <tr class="hover:bg-gray-50">
+                        @php
+                            $detailUrl = route('enrollments.promotions.show', $p);
+                        @endphp
+
+                        <tr class="hover:bg-gray-50 cursor-pointer transition" data-row-link="{{ $detailUrl }}"
+                            role="link" tabindex="0"
+                            aria-label="Lihat detail promote {{ $p->fromYear?->name ?? '-' }} ke {{ $p->toYear?->name ?? '-' }}"
+                            title="Klik untuk lihat detail">
                             <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
                                 {{ $p->executed_at?->format('d-m-Y H:i') ?? $p->created_at?->format('d-m-Y H:i') }}
                             </td>
@@ -153,17 +158,10 @@
                             <td class="px-6 py-4 text-right text-gray-900">
                                 {{ (int) $p->skipped_students }}
                             </td>
-
-                            <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <a href="{{ route('enrollments.promotions.show', $p) }}"
-                                    class="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    Detail
-                                </a>
-                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-10 text-center text-gray-500">
                                 Belum ada log promote.
                             </td>
                         </tr>
@@ -177,4 +175,36 @@
 
         </div>
     </div>
+
+    {{-- JS ringan: klik baris / Enter / Space untuk buka detail --}}
+    <script>
+        (function() {
+            const rows = document.querySelectorAll('tr[data-row-link]');
+            if (!rows.length) return;
+
+            function go(url) {
+                if (!url) return;
+                window.location.href = url;
+            }
+
+            rows.forEach((row) => {
+                const url = row.getAttribute('data-row-link');
+
+                row.addEventListener('click', (e) => {
+                    // kalau suatu saat ada element interaktif di dalam row, biar ga "nabrak"
+                    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+                    if (['a', 'button', 'input', 'select', 'textarea', 'label'].includes(tag)) return;
+
+                    go(url);
+                });
+
+                row.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        go(url);
+                    }
+                });
+            });
+        })();
+    </script>
 </x-app-layout>

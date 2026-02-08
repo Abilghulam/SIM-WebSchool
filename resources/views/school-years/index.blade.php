@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Master Tahun Ajaran</h2>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Tahun Ajaran</h2>
                 <p class="text-sm text-gray-500 mt-1">
                     Kelola daftar tahun ajaran. Hanya satu tahun ajaran yang bisa aktif.
                 </p>

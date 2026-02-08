@@ -59,23 +59,22 @@
                 data-loading-scope>
                 @csrf
 
-                <x-ui.card title="Tujuan Penempatan"
-                    subtitle="Kamu boleh mengosongkan Kelas jika pembagian kelas belum dilakukan.">
+                <x-ui.card title="Tujuan Penempatan" subtitle="Tentukan Tahun Ajaran dan Kelas tujuan penempatan siswa">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                         <div class="md:col-span-4">
                             <label class="block text-sm font-medium text-gray-700">Tahun Ajaran</label>
                             <input type="text" value="{{ $activeYear?->name }}" disabled
                                 class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 text-gray-700" />
                             <div class="text-xs text-gray-500 mt-1">
-                                Sistem selalu mengikuti Tahun Ajaran yang sedang aktif.
+                                Tahun ajaran terpilih secara otomatis
                             </div>
                         </div>
 
                         <div class="md:col-span-4">
-                            <label class="block text-sm font-medium text-gray-700">Kelas (Opsional)</label>
+                            <label class="block text-sm font-medium text-gray-700">Kelas</label>
                             <select name="classroom_id"
                                 class="mt-1 block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">- Belum ditentukan -</option>
+                                <option value="">- Pilih -</option>
                                 @foreach ($classrooms as $c)
                                     <option value="{{ $c->id }}" @selected((string) old('classroom_id') === (string) $c->id)>
                                         {{ $c->name }} {{ $c->major?->name ? '• ' . $c->major->name : '' }}
@@ -86,7 +85,7 @@
                                 <div class="text-sm text-red-600 mt-1">{{ $message }}</div>
                             @enderror
                             <div class="text-xs text-gray-500 mt-1">
-                                Jika kelas dikosongkan, siswa tetap akan tercatat pada Tahun Ajaran aktif.
+                                Pilih kelas tujuan penempatan siswa
                             </div>
                         </div>
 
@@ -103,7 +102,7 @@
                 </x-ui.card>
 
                 <x-ui.card title="Pilih Siswa"
-                    subtitle="Centang siswa yang akan dicatat pada Tahun Ajaran aktif (dan kelas jika kamu isi).">
+                    subtitle="Pilih siswa yang akan ditempatkan ke dalam kelas tujuan di atas">
                     <x-ui.table>
                         <x-slot:head>
                             <tr>
@@ -155,8 +154,8 @@
                             @enderror
 
                             <div class="text-xs text-gray-500 mt-3">
-                                Catatan: Siswa yang sudah memiliki kelas pada Tahun Ajaran aktif tidak akan tampil di
-                                halaman ini.
+                                Catatan: Siswa yang tampil adalah siswa dengan status <span
+                                    class="font-semibold">Aktif</span> yang belum tercatat pada penempatan kelas
                             </div>
                         </x-slot:footer>
                     </x-ui.table>

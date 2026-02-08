@@ -6,12 +6,12 @@
     <x-slot name="header">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Master Jurusan</h2>
-                <p class="text-sm text-gray-500 mt-1">Kelola jurusan di sekolah.</p>
+                <h2 class="text-xl font-semibold text-gray-900 leading-tight">Program Keahlian</h2>
+                <p class="text-sm text-gray-500 mt-1">Kelola program keahlian di sekolah.</p>
             </div>
 
             <a href="{{ route('majors.create') }}">
-                <x-ui.button>+ Tambah Jurusan</x-ui.button>
+                <x-ui.button>+ Tambah Program Keahlian</x-ui.button>
             </a>
         </div>
     </x-slot>
@@ -20,7 +20,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-ui.flash />
 
-            <x-ui.card title="Filter" subtitle="Cari jurusan berdasarkan nama atau kode.">
+            <x-ui.card title="Filter" subtitle="Cari program keahlian berdasarkan nama atau kode.">
                 <form method="GET" action="{{ route('majors.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-8">
                         <x-ui.input name="search" label="Cari" placeholder="Nama / kode"
@@ -33,7 +33,7 @@
                         </a>
 
                         <div class="text-sm text-gray-500 ms-auto">
-                            Total: <span class="font-semibold text-gray-900">{{ $majors->total() }}</span>
+                            <span class="font-semibold text-gray-900">{{ $majors->total() }}</span> Program Keahlian
                         </div>
                     </div>
                 </form>
