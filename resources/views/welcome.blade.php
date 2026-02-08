@@ -139,7 +139,7 @@
                         <div class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
                             style="border-color: var(--line); background: rgba(15,30,55,0.28); color: var(--navy-soft);">
                             <span class="h-2 w-2 rounded-full" style="background: rgba(175,205,228,.55);"></span>
-                            Portal Resmi • SIM Sekolah
+                            Portal Resmi
                         </div>
 
                         <h1 class="mt-4 text-2xl font-bold tracking-tight sm:text-3xl" style="color: var(--navy);">
@@ -147,8 +147,8 @@
                         </h1>
 
                         <p class="mt-3 text-sm" style="color: var(--muted);">
-                            Akses cepat untuk pengelolaan data akademik, administrasi, dan laporan—dengan tampilan
-                            modern dan institusional.
+                            Akses cepat untuk pengelolaan data akademik, administrasi, dan struktur sekolah dengan
+                            tampilan modern dan institusional.
                         </p>
 
                         <!-- CTA -->
@@ -188,7 +188,7 @@
 
                     <div class="mt-4 flex items-center justify-between text-xs" style="color: var(--muted);">
                         <div>© {{ date('Y') }} SMKN 9 Muaro Jambi</div>
-                        <div class="hidden sm:block">SIM Sekolah • Institusional</div>
+                        <div class="hidden sm:block">All right reserved</div>
                     </div>
                 </div>
             </div>
