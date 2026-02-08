@@ -30,13 +30,6 @@
                             <x-ui.input label="Tanggal Selesai (opsional)" type="date" name="end_date"
                                 value="{{ old('end_date') }}" :error="$errors->first('end_date')" />
                         </div>
-
-                        <div class="md:col-span-2">
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="is_active" value="1" @checked(old('is_active'))>
-                                <span>Jadikan tahun ajaran aktif</span>
-                            </label>
-                        </div>
                     </div>
                 </x-ui.card>
 

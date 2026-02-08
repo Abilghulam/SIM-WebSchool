@@ -70,12 +70,12 @@ class StudentImportController extends Controller
         // ==========================
         // BUILD: mapping label TA & kelas (di controller, bukan blade)
         // ==========================
-        $preview = is_array($result['preview'] ?? null) ? $result['preview'] : [];
+        $tablePreview = is_array($result['table_preview'] ?? null) ? $result['table_preview'] : [];
 
         $defaultSyId = $options['default_school_year_id'] ?? null;
         $defaultClId = $options['default_classroom_id'] ?? null;
 
-        $schoolYearIds = collect($preview)
+        $schoolYearIds = collect($tablePreview)
             ->pluck('school_year_id')
             ->filter()
             ->push($defaultSyId)
@@ -84,7 +84,7 @@ class StudentImportController extends Controller
             ->values()
             ->all();
 
-        $classroomIds = collect($preview)
+        $classroomIds = collect($tablePreview)
             ->pluck('classroom_id')
             ->filter()
             ->push($defaultClId)
@@ -127,12 +127,16 @@ class StudentImportController extends Controller
         // ==========================
         // BUILD: rows preview yg sudah punya text (TA & Kelas)
         // ==========================
-        $previewRows = collect($preview)->map(function ($r) use ($defaultSyId, $defaultClId, $syText, $clText) {
+        $previewRows = collect($tablePreview)->map(function ($r) use ($defaultSyId, $defaultClId, $syText, $clText) {
             $syId = $r['school_year_id'] ?? $defaultSyId;
             $clId = $r['classroom_id'] ?? $defaultClId;
 
             $r['school_year_text'] = $syText($syId);
             $r['classroom_text']   = $clText($clId);
+
+            // ✅ pastikan tetap ada untuk highlight
+            $r['line'] = (int) ($r['line'] ?? 0);
+            $r['is_error'] = (bool) ($r['is_error'] ?? false);
 
             return $r;
         })->values()->all();
@@ -225,28 +229,6 @@ class StudentImportController extends Controller
             ];
         })->values()->all();
 
-        // ==========================
-        // BUILD: set baris error untuk highlight table
-        // ==========================
-        $errorLineSet = collect($errorRows)
-            ->pluck('line')
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $previewRows = collect($previewRows)->values()->map(function ($r, $idx) use ($errorLineSet) {
-            $line = (int) ($r['line'] ?? $r['row'] ?? 0);
-            if ($line <= 0) {
-                $line = $idx + 1;
-            }
-
-            $r['line'] = $line;
-            $r['is_error'] = in_array($line, $errorLineSet, true);
-
-            return $r;
-        })->all();
-
         return view('imports.students-preview', [
             'token' => $token,
             'options' => $options,
@@ -254,7 +236,6 @@ class StudentImportController extends Controller
             'importSettings' => $importSettings,
             'previewRows' => $previewRows,
             'errorRows' => $errorRows,
-            'errorLineSet' => $errorLineSet,
         ]);
     }
 

@@ -24,7 +24,6 @@
                 <x-ui.card title="Total Siswa">
                     <div class="flex items-start justify-between gap-3">
                         <div class="rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 p-2">
-                            {{-- lucide users-round --}}
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" class="lucide lucide-users-round">
@@ -46,7 +45,6 @@
                 <x-ui.card title="Siap Diproses">
                     <div class="flex items-start justify-between gap-3">
                         <div class="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 p-2">
-                            {{-- lucide user-round-check --}}
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" class="lucide lucide-user-round-check">
@@ -68,7 +66,6 @@
                 <x-ui.card title="Perlu Perbaikan">
                     <div class="flex items-start justify-between gap-3">
                         <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 p-2">
-                            {{-- lucide user-round-x --}}
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" class="lucide lucide-user-round-x">
@@ -89,7 +86,6 @@
 
                 {{-- Pengaturan Import --}}
                 <x-ui.card title="Pengaturan Import">
-                    {{-- (biarin seperti punyamu) --}}
                     <div class="flex flex-wrap gap-2">
                         <span
                             class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold {{ $importSettings['mode_pill'] ?? '' }}">
@@ -126,8 +122,8 @@
                 </x-ui.card>
             </div>
 
-            {{-- Preview valid --}}
-            <x-ui.card title="Preview Data Siswa" subtitle="Data valid yang siap disimpan">
+            {{-- Preview --}}
+            <x-ui.card title="Preview Data Siswa" subtitle="Klik baris merah untuk melihat detail errornya.">
                 <div class="overflow-auto">
                     <table class="min-w-full text-sm">
                         <thead class="text-left text-gray-500">
@@ -145,19 +141,35 @@
                             @forelse ($previewRows as $r)
                                 @php
                                     $isError = (bool) ($r['is_error'] ?? false);
-                                    $rowClass = $isError ? 'border-t bg-red-50/60' : 'border-t';
+                                    $line = (int) ($r['line'] ?? 0);
+
+                                    $rowClass = $isError
+                                        ? 'border-t bg-red-50/60 cursor-pointer hover:bg-red-100/60 transition'
+                                        : 'border-t';
+
                                     $cellMuted = $isError ? 'text-red-900' : '';
+
                                     $badgeClass = $isError
                                         ? 'border-red-200 bg-red-50 text-red-700'
                                         : 'border-gray-200 bg-gray-50 text-gray-700';
+
+                                    $errorPillClass =
+                                        'inline-flex items-center rounded-full border border-red-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-red-700';
                                 @endphp
 
-                                <tr class="{{ $rowClass }}">
+                                <tr class="{{ $rowClass }}"
+                                    @if ($isError && $line > 0) data-error-line="{{ $line }}"
+                                        role="button"
+                                        tabindex="0"
+                                        aria-label="Lihat error baris {{ $line }}"
+                                        title="Klik untuk lihat detail error" @endif>
                                     <td class="py-2 pr-4 {{ $cellMuted }}">{{ $r['nis'] ?? '-' }}</td>
+
                                     <td
                                         class="py-2 pr-4 font-semibold {{ $isError ? 'text-red-900' : 'text-gray-900' }}">
                                         {{ $r['full_name'] ?? '-' }}
                                     </td>
+
                                     <td class="py-2 pr-4 {{ $cellMuted }}">{{ $r['gender'] ?? '-' }}</td>
                                     <td class="py-2 pr-4 {{ $cellMuted }}">{{ $r['status'] ?? '-' }}</td>
 
@@ -168,11 +180,18 @@
                                         </span>
                                     </td>
 
+                                    {{-- Kelas + badge Error kecil di ujung kanan --}}
                                     <td class="py-2 pr-4">
-                                        <span
-                                            class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $badgeClass }}">
-                                            {{ $r['classroom_text'] ?? '-' }}
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $badgeClass }}">
+                                                {{ $r['classroom_text'] ?? '-' }}
+                                            </span>
+
+                                            @if ($isError)
+                                                <span class="ms-auto {{ $errorPillClass }}">Error</span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -187,48 +206,54 @@
                 </div>
 
                 <div class="text-xs text-gray-500 mt-3">
-                    Catatan: tabel ini menampilkan data valid hasil baca file. Data yang gagal diproses atau error
-                    ditandai dengan baris berwarna merah dan perlu perbaikan
+                    Catatan: baris berwarna merah menandakan ada error dan perlu perbaikan.
                 </div>
             </x-ui.card>
 
             {{-- Error preview --}}
             @if (!empty($errorRows))
-                <x-ui.card title="Perlu Perbaikan" subtitle="Daftar baris yang bermasalah beserta alasan singkatnya.">
-                    <div class="space-y-3">
-                        @foreach ($errorRows as $e)
-                            <div class="rounded-2xl border border-red-200 bg-red-50 p-4">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div class="text-sm font-semibold text-red-800">
-                                            Baris {{ $e['line'] ?? '-' }} perlu diperbaiki
+                {{-- wrapper supaya id pasti ada walau x-ui.card tidak meneruskan atribut --}}
+                <div id="errorCard">
+                    <x-ui.card title="Perlu Perbaikan"
+                        subtitle="Klik baris merah di tabel untuk langsung lompat ke detail errornya.">
+                        <div id="errorList" class="space-y-3">
+                            @foreach ($errorRows as $e)
+                                @php $line = (int) ($e['line'] ?? 0); @endphp
+
+                                <div id="error-item-{{ $line }}" data-error-item="{{ $line }}"
+                                    class="rounded-2xl border border-red-200 bg-red-50 p-4 transition">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <div class="text-sm font-semibold text-red-800">
+                                                Baris {{ $line ?: '-' }} perlu diperbaiki
+                                            </div>
+                                            <div class="text-xs text-red-700 mt-1">
+                                                Periksa data pada baris ini di file import, lalu upload ulang.
+                                            </div>
                                         </div>
-                                        <div class="text-xs text-red-700 mt-1">
-                                            Periksa data pada baris ini di file import, lalu upload ulang.
-                                        </div>
+
+                                        <span
+                                            class="inline-flex items-center rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700">
+                                            Error
+                                        </span>
                                     </div>
 
-                                    <span
-                                        class="inline-flex items-center rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700">
-                                        Error
-                                    </span>
+                                    <ul class="mt-3 text-sm text-red-800 list-disc pl-5 space-y-1">
+                                        @foreach ($e['messages'] ?? [] as $msg)
+                                            <li>{{ $msg }}</li>
+                                        @endforeach
+                                    </ul>
                                 </div>
+                            @endforeach
 
-                                <ul class="mt-3 text-sm text-red-800 list-disc pl-5 space-y-1">
-                                    @foreach ($e['messages'] ?? [] as $msg)
-                                        <li>{{ $msg }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endforeach
-
-                        @if (data_get($result, 'has_more_errors'))
-                            <div class="text-xs text-gray-500">
-                                Masih ada error lainnya, tampilan daftar error dipersingkat.
-                            </div>
-                        @endif
-                    </div>
-                </x-ui.card>
+                            @if (data_get($result, 'has_more_errors'))
+                                <div class="text-xs text-gray-500">
+                                    Masih ada error lainnya, tampilan daftar error dipersingkat.
+                                </div>
+                            @endif
+                        </div>
+                    </x-ui.card>
+                </div>
             @endif
 
             {{-- Actions --}}
@@ -253,4 +278,88 @@
             </div>
         </div>
     </div>
+
+    {{-- CSS murni: anti Tailwind purge, highlight pasti tampil --}}
+    <style>
+        .import-error-highlight {
+            background: rgba(254, 226, 226, 0.7);
+            box-shadow: 0 0 0 2px rgba(248, 113, 113, .85), 0 0 0 8px rgba(248, 113, 113, .18);
+            border-color: rgba(248, 113, 113, .85) !important;
+        }
+
+        @keyframes importErrorPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.01);
+            }
+        }
+
+        .import-error-pulse {
+            animation: importErrorPulse 0.9s ease-in-out 2;
+        }
+    </style>
+
+    {{-- JS: klik baris merah -> scroll ke error card + item terkait + highlight --}}
+    <script>
+        (function() {
+            const errorCard = document.getElementById('errorCard');
+            if (!errorCard) return;
+
+            const H = 'import-error-highlight';
+            const P = 'import-error-pulse';
+
+            function clearHighlights() {
+                document.querySelectorAll('[data-error-item]').forEach((el) => {
+                    el.classList.remove(H);
+                    el.classList.remove(P);
+                });
+            }
+
+            function focusError(line) {
+                line = String(line || '').trim();
+                if (!line) return;
+
+                const target = document.querySelector(`[data-error-item="${CSS.escape(line)}"]`);
+                if (!target) return;
+
+                // scroll ke card error (biar konteks kebaca)
+                errorCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+
+                // lanjut scroll ke item error + highlight
+                setTimeout(() => {
+                    clearHighlights();
+
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    target.classList.add(H);
+                    target.classList.add(P);
+
+                    // stop pulse lebih cepat, highlight lebih lama
+                    setTimeout(() => target.classList.remove(P), 1200);
+                    setTimeout(() => target.classList.remove(H), 4500);
+                }, 250);
+            }
+
+            document.querySelectorAll('tr[data-error-line]').forEach((row) => {
+                const line = row.getAttribute('data-error-line');
+                row.addEventListener('click', () => focusError(line));
+                row.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        focusError(line);
+                    }
+                });
+            });
+        })();
+    </script>
 </x-app-layout>

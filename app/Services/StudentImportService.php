@@ -31,7 +31,8 @@ class StudentImportService
         }
 
         $errors = [];
-        $normalized = [];
+        $validOnly = [];
+        $tableRows = []; // ✅ untuk tabel: valid + error
 
         $stats = [
             'total_rows' => count($rows),
@@ -40,27 +41,42 @@ class StudentImportService
         ];
 
         foreach ($rows as $i => $row) {
-            $line = $meta['line_map'][$i] ?? null; // line asli di excel
+            $line = (int) ($meta['line_map'][$i] ?? ($i + 2)); // baris asli di excel
             $n = $this->normalizeRow($row, $options);
             $rowErrors = $this->validateRow($n, $options);
 
-            if (!empty($rowErrors)) {
+            $isError = !empty($rowErrors);
+
+            // ✅ selalu masuk table preview agar bisa diwarnai (error tetap tampil)
+            $tableRows[] = array_merge($n, [
+                'line' => $line,
+                'is_error' => $isError,
+            ]);
+
+            if ($isError) {
                 $stats['invalid_rows']++;
                 $errors[] = [
-                    'line' => $line ?? ($i + 2),
+                    'line' => $line,
                     'errors' => $rowErrors,
-                    'row' => $row,
+                    'row' => $row, // raw (buat audit/debug)
                 ];
                 continue;
             }
 
             $stats['valid_rows']++;
-            $normalized[] = $n;
+            $validOnly[] = $n;
         }
 
         return [
             'stats' => $stats,
-            'preview' => array_slice($normalized, 0, 20),
+
+            // tetap keep ini (valid only) kalau ada bagian lain yg masih pakai
+            'preview' => array_slice($validOnly, 0, 20),
+
+            // ✅ INI yang dipakai untuk table (valid + error)
+            'table_preview' => array_slice($tableRows, 0, 50),
+            'has_more_table_rows' => count($tableRows) > 50,
+
             'errors' => array_slice($errors, 0, 50),
             'has_more_errors' => count($errors) > 50,
         ];
