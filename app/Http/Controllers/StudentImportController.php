@@ -225,15 +225,36 @@ class StudentImportController extends Controller
             ];
         })->values()->all();
 
+        // ==========================
+        // BUILD: set baris error untuk highlight table
+        // ==========================
+        $errorLineSet = collect($errorRows)
+            ->pluck('line')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $previewRows = collect($previewRows)->values()->map(function ($r, $idx) use ($errorLineSet) {
+            $line = (int) ($r['line'] ?? $r['row'] ?? 0);
+            if ($line <= 0) {
+                $line = $idx + 1;
+            }
+
+            $r['line'] = $line;
+            $r['is_error'] = in_array($line, $errorLineSet, true);
+
+            return $r;
+        })->all();
+
         return view('imports.students-preview', [
             'token' => $token,
             'options' => $options,
             'result' => $result,
-
-            // ✅ tambahan aman untuk blade
             'importSettings' => $importSettings,
             'previewRows' => $previewRows,
             'errorRows' => $errorRows,
+            'errorLineSet' => $errorLineSet,
         ]);
     }
 
